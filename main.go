@@ -26,7 +26,7 @@ func readPolygons(in *os.File) []Polygon {
 	polygons := []Polygon{}
 	// Scan lines
 	scanner := bufio.NewScanner(in)
-	points := []Point{}
+	points := []*Point{}
 	for scanner.Scan() {
 		// Read the next line
 		line := scanner.Text()
@@ -35,14 +35,14 @@ func readPolygons(in *os.File) []Polygon {
 		if line == "" {
 			if len(points) > 0 {
 				polygons = append(polygons, Polygon{Points: points})
-				points = []Point{}
+				points = []*Point{}
 			}
 			continue
 		}
 
 		// Parse the point out of the line
 		point := parsePoint(line)
-		points = append(points, point)
+		points = append(points, &point)
 	}
 
 	// Handle trailing polygon if any
