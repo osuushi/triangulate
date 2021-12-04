@@ -91,6 +91,63 @@ func TestTriangleSignedArea(t *testing.T) {
 	}
 }
 
+func TestPolygonSignedArea(t *testing.T) {
+	for cwI := 0; cwI < 2; cwI++ {
+		cwI := cwI // import into inner scope
+		t.Run(fmt.Sprintf("With %s polygons", []string{"CCW", "CW"}[cwI]), func(t *testing.T) {
+			// Make a nonconvex polygon - an hourglass - which it is hopefully easy to see has area 64
+			poly := Polygon{
+				Points: []*Point{
+					{2, 0},
+					{6, 4},
+					{-6, 4},
+					{-2, 0},
+					{-6, -4},
+					{6, -4},
+				},
+			}
+			// Clockwise triangles will have negative area, so sign is -1 for CW = 1
+			sign := 1 - 2*float64(cwI)
+			assertArea := func(expected float64) {
+				assert.InDelta(t, sign*expected, poly.SignedArea(), Epsilon)
+			}
+			if cwI == 1 {
+				poly = poly.Reverse()
+			}
+			assertArea(64)
+			// Stretch the triangle out
+			for _, p := range poly.Points {
+				p.Y *= 2
+			}
+			assertArea(128)
+
+			// Rotate the polygon repeatedly by a weird angle
+			angle := math.Pi / 7
+			for i := 0; i < 14; i++ {
+				// Multiply each point by the rotation matrix
+				for _, p := range poly.Points {
+					rotatePoint(p, angle)
+				}
+				assertArea(128)
+			}
+
+			// Translate the polygon and do the whole rotation thing again
+			for _, p := range poly.Points {
+				p.X += 5
+				p.Y += 3
+			}
+
+			for i := 0; i < 14; i++ {
+				// Multiply each point by the rotation matrix
+				for _, p := range poly.Points {
+					rotatePoint(p, angle)
+				}
+				assertArea(128)
+			}
+		})
+	}
+}
+
 // Helpers
 
 func rotatePoint(point *Point, angle float64) {

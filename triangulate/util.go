@@ -51,8 +51,23 @@ func (s *PointStack) Peek() *Point {
 	return (*s)[len(*s)-1]
 }
 
+func (poly Polygon) Reverse() Polygon {
+	newPoly := Polygon{}
+	for i := len(poly.Points) - 1; i >= 0; i-- {
+		newPoly.Points = append(newPoly.Points, poly.Points[i])
+	}
+	return newPoly
+}
+
 func (s *PointStack) Empty() bool {
 	return len(*s) == 0
+}
+
+// Several properties can be derived from any structure that can compute its
+// signed area.
+type HasSignedArea interface {
+	// Enclosed area of the structure, positive if counterclockwise, negative if clockwise.
+	SignedArea() float64
 }
 
 func (t *Triangle) SignedArea() float64 {
@@ -69,13 +84,6 @@ func (poly *Polygon) SignedArea() float64 {
 		area += poly.Points[i].X*poly.Points[nextI].Y - poly.Points[nextI].X*poly.Points[i].Y
 	}
 	return area / 2
-}
-
-// Several properties can be derived from any structure that can compute its
-// signed area.
-type HasSignedArea interface {
-	// Enclosed area of the structure, positive if counterclockwise, negative if clockwise.
-	SignedArea() float64
 }
 
 func Area(s HasSignedArea) float64 {
