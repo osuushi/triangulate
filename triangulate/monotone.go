@@ -1,7 +1,7 @@
 package triangulate
 
 import (
-	"math"
+	"fmt"
 	"strconv"
 )
 
@@ -19,18 +19,18 @@ import (
 //
 // Note that the polygon must be counterclockwise.
 
-func TriangulateMonotone(polygon Polygon) []*Triangle {
+func TriangulateMonotone(polygon *Polygon) []*Triangle {
 	if len(polygon.Points) < 3 {
 		panic("Cannot triangulate degenerate polygon with point count:" + strconv.Itoa(len(polygon.Points)))
 	}
 	if len(polygon.Points) == 3 {
-		return []*Triangle{&Triangle{polygon.Points[0], polygon.Points[1], polygon.Points[2]}}
+		return []*Triangle{{polygon.Points[0], polygon.Points[1], polygon.Points[2]}}
 	}
 
 	triangles := make([]*Triangle, 0, len(polygon.Points)-2)
 
 	// Sort points so top point is at the top of the array.
-	sortedPoints := make([]*Point, len(polygon.Points))
+	sortedPoints := make([]*Point, 0, len(polygon.Points))
 
 	// Map to find index by point
 	pointMap := make(map[*Point]int)
@@ -43,6 +43,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 			topPointIndex = i
 		}
 	}
+
 	sortedPoints = append(sortedPoints, polygon.Points[topPointIndex])
 
 	// Structure for determining which chain a point is on the left or right chain
@@ -55,6 +56,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 	// Merge sort points starting from top, noting which are on the left chain, and track the bottom point separately
 	leftOffset := 1
 	rightOffset := 1
+	// Check which point is next for the buffer
 	var bottomPoint *Point
 	for {
 		leftPoint := polygon.Points[CircularIndex(topPointIndex+leftOffset, len(polygon.Points))]
@@ -67,7 +69,6 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 			break
 		}
 
-		// Check which point is next for the buffer
 		if leftPoint.Above(rightPoint) {
 			leftChain[leftPoint] = struct{}{}
 			sortedPoints = append(sortedPoints, leftPoint)
@@ -77,20 +78,22 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 			rightOffset++
 		}
 	}
-
 	// Create the stack and populate it with the first two points
 	stack := make(PointStack, 0)
 	stack.Push(sortedPoints[0])
 	stack.Push(sortedPoints[1])
 	// Iterate over the remainder of the sorted points
 	for i, p := range sortedPoints[2:] {
+		// Adjust index to account for the offset
+		i := i + 2
+
 		left := isLeft(p)
 		if left != isLeft(stack.Peek()) { // If switched to opposite side chain
 			// If we've jumped to the other chain, monotonicity guarantees that all
 			// stack points are visible from the current point. We can there for empty the entire stack, making new triangles
 			for !stack.Empty() {
 				a := stack.Pop()
-				if stack.Empty() {
+				if !stack.Empty() {
 					b := stack.Peek()
 					if left {
 						/*
@@ -99,7 +102,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 						 diagonal-> / |
 						           p--a
 						*/
-						triangles = append(triangles, &Triangle{p, a, b})
+						triangles = appendTriangle(triangles, &Triangle{p, a, b})
 					} else {
 						/*
 							b
@@ -107,7 +110,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 							| \
 							a--p
 						*/
-						triangles = append(triangles, &Triangle{a, b, p})
+						triangles = appendTriangle(triangles, &Triangle{a, p, b})
 					}
 				}
 			}
@@ -119,27 +122,12 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 			// time, we'll put it back
 			v := stack.Pop()
 
-			// Calculate the unit vector's Y value pointing from the current point to
-			// some other point. Iff this is less than that of the previous point,
-			// then the ray has gotten shallower, so the current point "sees" that
-			// other point.
-			var getUnitVectorY = func(otherPoint *Point) float64 {
-				len := math.Hypot(p.X-otherPoint.X, p.Y-otherPoint.Y)
-				return (otherPoint.Y - p.Y) / len
-			}
-
 			// Get the initial unitVectorY value
-			lastUnitVectorY := getUnitVectorY(v)
 			for !stack.Empty() {
-				// Check if we can see the next point
-				unitVectorY := getUnitVectorY(stack.Peek())
-				if unitVectorY > lastUnitVectorY { // We can't see the point
-					break
-				}
-				lastUnitVectorY = unitVectorY
-
-				// We can see the point, so create a triangle
-				q := stack.Pop()
+				topOfStack := stack.Peek()
+				// The easiest way to see if the point "sees" the top of the stack is to
+				// try creating the triangle, and see if it's CCW
+				var potentialTriangle *Triangle
 				if left {
 					/*
 						q
@@ -149,7 +137,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 						    \
 						     p
 					*/
-					triangles = append(triangles, &Triangle{p, q, v})
+					potentialTriangle = &Triangle{p, topOfStack, v}
 				} else {
 					/*
 						               q
@@ -160,11 +148,18 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 						          /
 						         p
 					*/
-					triangles = append(triangles, &Triangle{p, v, q})
+					potentialTriangle = &Triangle{p, v, topOfStack}
 				}
-				v = q
+				if IsCCW(potentialTriangle) {
+					v = stack.Pop()
+					triangles = append(triangles, potentialTriangle)
+				} else {
+					// Stop looping if we can't see the next point
+					break
+				}
 			}
-			// Put the last point back on the stack, and then the current point
+
+			// Put the last v back on the stack, and then the current point
 			stack.Push(v)
 			stack.Push(p)
 		}
@@ -191,7 +186,7 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 				 \ |
 				   b
 			*/
-			triangles = append(triangles, &Triangle{bottomPoint, p, l})
+			triangles = appendTriangle(triangles, &Triangle{bottomPoint, p, l})
 		} else {
 			/*
 				            p
@@ -200,9 +195,18 @@ func TriangulateMonotone(polygon Polygon) []*Triangle {
 				            | /
 				            b
 			*/
-			triangles = append(triangles, &Triangle{bottomPoint, l, p})
+			triangles = appendTriangle(triangles, &Triangle{bottomPoint, l, p})
 		}
 		l = p
 	}
 	return triangles
+}
+
+// This is pulled out so that it's easy to add instrumentation.
+func appendTriangle(triangles []*Triangle, tri *Triangle) []*Triangle {
+	if IsCW(tri) {
+		panic("Triangle is CW:" + fmt.Sprintf("%v", tri))
+	}
+
+	return append(triangles, tri)
 }

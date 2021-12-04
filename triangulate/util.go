@@ -1,6 +1,9 @@
 package triangulate
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 const Epsilon = 1e-6
 
@@ -96,4 +99,30 @@ func IsCCW(s HasSignedArea) bool {
 
 func IsCW(s HasSignedArea) bool {
 	return s.SignedArea() < 0
+}
+
+func (ps PointSet) Contains(p *Point) bool {
+	_, ok := ps[p]
+	return ok
+}
+
+func (ps PointSet) Add(p *Point) {
+	ps[p] = struct{}{}
+}
+
+func (ps PointSet) Equals(otherSet PointSet) bool {
+	if len(ps) != len(otherSet) {
+		return false
+	}
+	for p := range ps {
+		if !otherSet.Contains(p) {
+			return false
+		}
+	}
+	return true
+}
+
+// String functions
+func (p *Point) String() string {
+	return fmt.Sprintf("{%0.2f, %0.2f}", p.X, p.Y)
 }

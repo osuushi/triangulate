@@ -23,3 +23,5 @@ type Triangle struct {
 }
 
 type PointStack []*Point
+
+type PointSet map[*Point]struct{}
