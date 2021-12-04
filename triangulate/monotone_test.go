@@ -68,6 +68,7 @@ func TestTriangulateMonotone(t *testing.T) {
 	fixtureNames := []string{
 		"monotone_asteroid",
 		"monotone_c",
+		"monotone_diamond",
 	}
 	for _, fixtureName := range fixtureNames {
 		t.Run(fixtureName+" (original)", func(t *testing.T) {
