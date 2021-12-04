@@ -95,7 +95,7 @@ func TestPolygonSignedArea(t *testing.T) {
 	for cwI := 0; cwI < 2; cwI++ {
 		cwI := cwI // import into inner scope
 		t.Run(fmt.Sprintf("With %s polygons", []string{"CCW", "CW"}[cwI]), func(t *testing.T) {
-			// Make a nonconvex polygon - an hourglass - which it is hopefully easy to see has area 64
+			// Make a skewed polygon - an hourglass - which it is hopefully easy to see has area 64
 			poly := Polygon{
 				Points: []*Point{
 					{2, 0},
@@ -106,6 +106,15 @@ func TestPolygonSignedArea(t *testing.T) {
 					{6, -4},
 				},
 			}
+			// Skew the polygon by moving the right side points down. The principle here
+			// is to avoid bugs being hidden by reflective symmetry, but this skew
+			// (hopefully obviously), doesn't change the area. The result is a sort of stylized "Z"
+			for _, point := range poly.Points {
+				if point.X > 0 {
+					point.Y -= 5
+				}
+			}
+
 			// Clockwise triangles will have negative area, so sign is -1 for CW = 1
 			sign := 1 - 2*float64(cwI)
 			assertArea := func(expected float64) {
