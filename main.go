@@ -17,6 +17,9 @@ import (
 // Polygons should be simple and wind counterclockwise. A clockwise polygon is a
 // hole. A hole should be contained by only one outer polygon, and should not
 // intersect its edges. None of these requirements are validated.
+//
+// The origin is at the bottom left corner of the coordinate system. This is
+// important when defining "clockwise"
 func main() {
 	polygons := readPolygons(os.Stdin)
 	fmt.Printf("Read %d polygons\n", len(polygons))
