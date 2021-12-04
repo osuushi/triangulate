@@ -157,6 +157,22 @@ func TestPolygonSignedArea(t *testing.T) {
 	}
 }
 
+// Test the lexicographically adjusted "below" method
+func TestBelow(t *testing.T) {
+	p := &Point{1, 1}
+	// Below by normal standards
+	assert.True(t, p.Below(&Point{1, 2}))
+	// Above by normal standards
+	assert.False(t, p.Below(&Point{1, 0}))
+
+	// Below by lexicographic correction (other point is to the right, so it is
+	// "above" p because of the tie-break)
+	assert.True(t, p.Below(&Point{2, 1}))
+	// Above by lexicographic correction (other point is to the left, so it is
+	// "below" p because of the tie-break)
+	assert.False(t, p.Below(&Point{0, 1}))
+}
+
 // Helpers
 
 func rotatePoint(point *Point, angle float64) {
