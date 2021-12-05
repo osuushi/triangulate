@@ -138,18 +138,8 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	if Equal(s.Start.Y, s.End.Y) {
 		return s.Start.X < p.X && s.End.X < p.X
 	}
-
-	// Handle vertical case (since we can't find the slope in that case)
-	if Equal(s.Start.X, s.End.X) {
-		return s.Start.X < p.X
-	}
-
-	// Find slope and y intercept
-	m := (s.End.Y - s.Start.Y) / (s.End.X - s.Start.X)
-	b := s.Start.Y - m*s.Start.X
-	// Solve X for P.Y
-	segmentX := (p.Y - b) / m
-	return segmentX < p.X
+	x := s.SolveForX(p.Y)
+	return x < p.X
 }
 
 // Determine which direction the segment points from top to bottom
@@ -173,6 +163,10 @@ func (s *Segment) Direction() Direction {
 }
 
 func (s *Segment) Top() *Point {
+	if s == nil {
+		return nil
+	}
+
 	if s.PointsDown() {
 		return s.Start
 	}
@@ -180,6 +174,10 @@ func (s *Segment) Top() *Point {
 }
 
 func (s *Segment) Bottom() *Point {
+	if s == nil {
+		return nil
+	}
+
 	if s.PointsDown() {
 		return s.End
 	}
@@ -188,4 +186,26 @@ func (s *Segment) Bottom() *Point {
 
 func (dir Direction) Opposite() Direction {
 	return dir ^ 1
+}
+
+func (s *Segment) IsHorizontal() bool {
+	return Equal(s.Start.Y, s.End.Y)
+}
+
+func (s *Segment) IsVertical() bool {
+	return Equal(s.Start.X, s.End.X)
+}
+
+// Solve the line (ignoring the bounds) for the given y value
+func (s *Segment) SolveForX(y float64) float64 {
+	if s.IsHorizontal() {
+		panic("Cannot solve for X on a horizontal segment")
+	}
+	if s.IsVertical() { // Special case; no slope
+		return s.Start.X
+	}
+
+	m := (s.End.Y - s.Start.Y) / (s.End.X - s.Start.X)
+	b := s.Start.Y - m*s.Start.X
+	return (y - b) / m
 }

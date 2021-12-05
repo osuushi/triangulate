@@ -17,14 +17,15 @@ func TestNewQueryGraph(t *testing.T) {
 		Start: &Point{X: 1, Y: 2},
 		End:   &Point{X: 3, Y: 4},
 	}
-	g := NewQueryGraph(segment)
-	require.NotNil(t, g)
+	graph := NewQueryGraph(segment)
+	root := graph.Root
+	require.NotNil(t, root)
 
-	require.IsType(t, &QueryNode{}, g)
+	require.IsType(t, &QueryNode{}, root)
 
 	// Test root node
-	require.IsType(t, YNode{}, g.Inner)
-	ynode = g.Inner.(YNode)
+	require.IsType(t, YNode{}, root.Inner)
+	ynode = root.Inner.(YNode)
 	assert.Equal(t, 3.0, ynode.Key.X)
 	assert.Equal(t, 4.0, ynode.Key.Y)
 
@@ -81,7 +82,7 @@ func TestNewQueryGraph(t *testing.T) {
 		right:  "right",
 	}
 	assertTrapezoidForPoint := func(t *testing.T, trapezoid *Trapezoid, x, y float64) {
-		sink := g.FindPoint(&Point{x, y}, Left)
+		sink := root.FindPoint(&Point{x, y}, Left)
 		require.NotNil(t, sink)
 		require.IsType(t, SinkNode{}, sink.Inner)
 		assert.Equal(t, trapNames[trapezoid], trapNames[sink.Inner.(SinkNode).Trapezoid])
