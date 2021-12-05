@@ -126,3 +126,36 @@ func (ps PointSet) Equals(otherSet PointSet) bool {
 func (p *Point) String() string {
 	return fmt.Sprintf("{%0.2f, %0.2f}", p.X, p.Y)
 }
+
+// A segment points down if its start point is above its endpoint
+func (s *Segment) PointsDown() bool {
+	return s.End.Below(s.Start)
+}
+
+// Is the line segment left of p. This assumes that P is vertically between the start and end of the segment
+func (s *Segment) IsLeftOf(p *Point) bool {
+	// Handle horizontal case
+	if Equal(s.Start.Y, s.End.Y) {
+		return s.Start.X < p.X && s.End.X < p.X
+	}
+	// Find slope and y intercept
+	m := (s.End.Y - s.Start.Y) / (s.End.X - s.Start.X)
+	b := s.Start.Y - m*s.Start.X
+	// Solve X for P.Y
+	segmentX := (p.Y - b) / m
+	return segmentX < p.X
+}
+
+func (s *Segment) Top() *Point {
+	if s.PointsDown() {
+		return s.Start
+	}
+	return s.End
+}
+
+func (s *Segment) Bottom() *Point {
+	if s.PointsDown() {
+		return s.End
+	}
+	return s.Start
+}
