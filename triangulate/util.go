@@ -152,6 +152,26 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	return segmentX < p.X
 }
 
+// Determine which direction the segment points from top to bottom
+/*
+      o
+    /   <- Left
+  o
+
+	o
+	 \  <- Right
+	  o
+*/
+func (s *Segment) Direction() Direction {
+	top := s.Top()
+	bottom := s.Bottom()
+	if top.X > bottom.X {
+		return Left
+	} else {
+		return Right
+	}
+}
+
 func (s *Segment) Top() *Point {
 	if s.PointsDown() {
 		return s.Start
@@ -164,4 +184,8 @@ func (s *Segment) Bottom() *Point {
 		return s.End
 	}
 	return s.Start
+}
+
+func (dir Direction) Opposite() Direction {
+	return dir ^ 1
 }

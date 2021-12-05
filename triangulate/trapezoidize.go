@@ -273,3 +273,19 @@ func NewQueryGraph(segment *Segment) QueryNode {
 	}
 	return graph
 }
+
+func (g *QueryGraph) AddSegment(segment *Segment) {
+	top := segment.Top()
+	bottom := segment.Bottom()
+	direction := segment.Direction()
+	// Find the node that contains the top point, coming from the bottom
+	node := g.Root.FindPoint(top, direction.Opposite())
+	switch node := node.(type) {
+	case *SinkNode:
+		// This means we landed inside an existing trapezoid. We will split it and replace its sink with a y node.
+
+	case *XNode:
+	default:
+		panic("Unexpected node type in AddSegment")
+	}
+}
