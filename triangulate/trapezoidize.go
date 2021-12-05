@@ -22,6 +22,13 @@ func (t *Trapezoid) IsInside() bool {
 	return t.Left != nil && t.Right != nil && t.Left.PointsDown()
 }
 
+type Direction int
+
+const (
+	Left Direction = iota
+	Right
+)
+
 // Node for the query structure. The query structure allows us to navigate the
 // trapezoid set efficiently, and can be built in O(nlog(n)) time. (TODO: There
 // is a preprocessing loop you can use to get this to O(nlog*n) time. Implement
@@ -36,11 +43,25 @@ func (t *Trapezoid) IsInside() bool {
 // plane.
 
 type QueryNode interface {
-	// Traverse the graph to find the sink whose trapezoid contains the point
-	FindPoint(*Point) QueryNode
+	// Traverse the graph to find the sink whose trapezoid contains the point. The
+	// direction argument is required to disambiguate when the point is an XNode
+	// segment's endpoint.
+	FindPoint(*Point, Direction) QueryNode
 
 	// Child nodes is useful for iterating over a graph
 	ChildNodes() []QueryNode
+}
+
+type QueryGraph struct {
+	Root QueryNode
+}
+
+func (g *QueryGraph) FindPoint(p *Point, dir Direction) QueryNode {
+	return g.Root.FindPoint(p, dir)
+}
+
+func (g *QueryGraph) ChildNodes() []QueryNode {
+	return []QueryNode{g.Root}
 }
 
 type SinkNode struct {
@@ -51,7 +72,7 @@ type SinkNode struct {
 	InitialParent QueryNode
 }
 
-func (node *SinkNode) FindPoint(point *Point) QueryNode {
+func (node *SinkNode) FindPoint(point *Point, _ Direction) QueryNode {
 	// If we're at a sink, we can't traverse any further.
 	return node
 }
@@ -66,11 +87,11 @@ type YNode struct {
 	Key          *Point // Point so that we can do the lexicographic thing
 }
 
-func (node *YNode) FindPoint(point *Point) QueryNode {
+func (node *YNode) FindPoint(point *Point, dir Direction) QueryNode {
 	if point.Below(node.Key) {
-		return node.Below.FindPoint(point)
+		return node.Below.FindPoint(point, dir)
 	} else {
-		return node.Above.FindPoint(point)
+		return node.Above.FindPoint(point, dir)
 	}
 }
 
@@ -84,11 +105,21 @@ type XNode struct {
 	Key         *Segment
 }
 
-func (node *XNode) FindPoint(point *Point) QueryNode {
+func (node *XNode) FindPoint(point *Point, dir Direction) QueryNode {
+	// First check if it's an endpoint. If so, we use dir to determine which way to go.
+	if node.Key.Start == point || node.Key.End == point {
+		switch dir {
+		case Left:
+			return node.Left.FindPoint(point, dir)
+		case Right:
+			return node.Right.FindPoint(point, dir)
+		}
+	}
+
 	if node.Key.IsLeftOf(point) {
-		return node.Right.FindPoint(point)
+		return node.Right.FindPoint(point, dir)
 	} else {
-		return node.Left.FindPoint(point)
+		return node.Left.FindPoint(point, dir)
 	}
 }
 
@@ -229,12 +260,16 @@ func NewQueryGraph(segment *Segment) QueryNode {
 	}
 
 	// Backlink all the trapezoid sinks to their initial parents
-	for node := range IterateGraph(root) {
+	graph := &QueryGraph{
+		Root: root,
+	}
+
+	for node := range IterateGraph(graph) {
 		for _, child := range node.ChildNodes() {
 			if sink, ok := child.(*SinkNode); ok {
 				sink.InitialParent = node
 			}
 		}
 	}
-	return root
+	return graph
 }
