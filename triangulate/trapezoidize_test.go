@@ -10,9 +10,9 @@ import (
 
 func TestNewQueryGraph(t *testing.T) {
 	// Variables for casting
-	var ynode *YNode
-	var xnode *XNode
-	var sink *SinkNode
+	var ynode YNode
+	var xnode XNode
+	var sink SinkNode
 	segment := &Segment{
 		Start: &Point{X: 1, Y: 2},
 		End:   &Point{X: 3, Y: 4},
@@ -20,47 +20,47 @@ func TestNewQueryGraph(t *testing.T) {
 	g := NewQueryGraph(segment)
 	require.NotNil(t, g)
 
-	require.IsType(t, &QueryGraph{}, g)
-	require.IsType(t, &YNode{}, g.(*QueryGraph).Root)
+	require.IsType(t, &QueryNode{}, g)
 
 	// Test root node
-	ynode = g.(*QueryGraph).Root.(*YNode)
+	require.IsType(t, YNode{}, g.Inner)
+	ynode = g.Inner.(YNode)
 	assert.Equal(t, 3.0, ynode.Key.X)
 	assert.Equal(t, 4.0, ynode.Key.Y)
 
 	// Test top sink
-	require.IsType(t, &SinkNode{}, ynode.Above)
-	sink = ynode.Above.(*SinkNode)
+	require.IsType(t, SinkNode{}, ynode.Above.Inner)
+	sink = ynode.Above.Inner.(SinkNode)
 	// Check parent relationship
-	assert.Equal(t, ynode, sink.InitialParent)
+	assert.Equal(t, ynode, sink.InitialParent.Inner)
 	top := sink.Trapezoid
 
 	// Get the YNode below the top trapezoid
-	require.IsType(t, &YNode{}, ynode.Below)
-	ynode = ynode.Below.(*YNode)
+	require.IsType(t, YNode{}, ynode.Below.Inner)
+	ynode = ynode.Below.Inner.(YNode)
 	assert.Equal(t, 1.0, ynode.Key.X)
 	assert.Equal(t, 2.0, ynode.Key.Y)
 
 	// Test bottom sink
-	require.IsType(t, &SinkNode{}, ynode.Below)
-	sink = ynode.Below.(*SinkNode)
+	require.IsType(t, SinkNode{}, ynode.Below.Inner)
+	sink = ynode.Below.Inner.(SinkNode)
 	bottom := sink.Trapezoid
 	// Check parent relationship
-	assert.Equal(t, ynode, sink.InitialParent)
+	assert.Equal(t, ynode, sink.InitialParent.Inner)
 
 	// Get the xnode above the bottom trapezoid
-	require.IsType(t, &XNode{}, ynode.Above)
-	xnode = ynode.Above.(*XNode)
+	require.IsType(t, XNode{}, ynode.Above.Inner)
+	xnode = ynode.Above.Inner.(XNode)
 	assert.Equal(t, segment, xnode.Key)
 
 	// Get the left sink
-	require.IsType(t, &SinkNode{}, xnode.Left)
-	sink = xnode.Left.(*SinkNode)
+	require.IsType(t, SinkNode{}, xnode.Left.Inner)
+	sink = xnode.Left.Inner.(SinkNode)
 	left := sink.Trapezoid
 
 	// Get the right sink
-	require.IsType(t, &SinkNode{}, xnode.Right)
-	sink = xnode.Right.(*SinkNode)
+	require.IsType(t, SinkNode{}, xnode.Right.Inner)
+	sink = xnode.Right.Inner.(SinkNode)
 	right := sink.Trapezoid
 
 	// Assert trapezoid neighbor relationships
@@ -83,8 +83,8 @@ func TestNewQueryGraph(t *testing.T) {
 	assertTrapezoidForPoint := func(t *testing.T, trapezoid *Trapezoid, x, y float64) {
 		sink := g.FindPoint(&Point{x, y}, Left)
 		require.NotNil(t, sink)
-		require.IsType(t, &SinkNode{}, sink)
-		assert.Equal(t, trapNames[trapezoid], trapNames[sink.(*SinkNode).Trapezoid])
+		require.IsType(t, SinkNode{}, sink.Inner)
+		assert.Equal(t, trapNames[trapezoid], trapNames[sink.Inner.(SinkNode).Trapezoid])
 	}
 
 	cases := []struct {
