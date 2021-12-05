@@ -138,6 +138,12 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	if Equal(s.Start.Y, s.End.Y) {
 		return s.Start.X < p.X && s.End.X < p.X
 	}
+
+	// Handle vertical case (since we can't find the slope in that case)
+	if Equal(s.Start.X, s.End.X) {
+		return s.Start.X < p.X
+	}
+
 	// Find slope and y intercept
 	m := (s.End.Y - s.Start.Y) / (s.End.X - s.Start.X)
 	b := s.Start.Y - m*s.Start.X
