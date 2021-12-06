@@ -302,10 +302,11 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			// have multiple XNode parents.
 			mergedTrapezoid.Sink = &QueryNode{SinkNode{Trapezoid: mergedTrapezoid}}
 
-			// Change every SinkNode to XNode, or complete XNode depending on direction
+			// Change every SinkNode to XNode, or complete the XNode depending on direction
 			for _, trapezoid := range chunk {
 				node := trapezoid.Sink
 				var xnode XNode
+				fmt.Printf("Updating sink: %T\n", node.Inner)
 				if side == Left { // On left side, we're making a new XNode
 					xnode = XNode{
 						Left: mergedTrapezoid.Sink,
@@ -343,6 +344,9 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	top.TrapezoidsBelow = [2]*Trapezoid{bottom}
 	bottom.TrapezoidsAbove = [2]*Trapezoid{top}
 
+	top.Sink = &QueryNode{SinkNode{Trapezoid: top, InitialParent: node}}
+	bottom.Sink = &QueryNode{SinkNode{Trapezoid: bottom, InitialParent: node}}
+
 	// Back link neighbors
 	for _, neighbor := range top.TrapezoidsAbove {
 		if neighbor != nil {
@@ -356,11 +360,9 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	}
 
 	// Create the new sink nodes
-	topSink := &QueryNode{SinkNode{Trapezoid: top, InitialParent: node}}
-	bottomSink := &QueryNode{SinkNode{Trapezoid: bottom, InitialParent: node}}
 	node.Inner = YNode{
 		Key:   point,
-		Above: topSink,
-		Below: bottomSink,
+		Above: top.Sink,
+		Below: bottom.Sink,
 	}
 }
