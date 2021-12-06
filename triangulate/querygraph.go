@@ -1,7 +1,9 @@
 package triangulate
 
 import (
+	"fmt"
 	"math"
+	"strings"
 )
 
 // This implements the data structures for Seidel 1991 for trapezoidizing a non-monotone polygon
@@ -164,7 +166,22 @@ func NewQueryGraph(segment *Segment) *QueryGraph {
 	return &QueryGraph{Root: graph}
 }
 
+func (graph *QueryGraph) PrintAllTrapezoids() {
+	var parts []string
+	for node := range IterateGraph(graph.Root) {
+		if node, ok := node.Inner.(SinkNode); ok {
+			parts = append(parts, node.Trapezoid.String())
+		}
+	}
+
+	fmt.Println(strings.Join(parts, "\n"))
+}
+
 func (graph *QueryGraph) AddSegment(segment *Segment) {
+	fmt.Println("Trapezoids before adding segment:")
+	graph.PrintAllTrapezoids()
+	fmt.Println()
+
 	top := segment.Top()
 	bottom := segment.Bottom()
 
@@ -175,6 +192,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	node := graph.Root.FindPoint(top, direction.Opposite())
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
+	fmt.Println("Splitting top trapezoid:", topTrapezoid.String())
 	// Check if we're not a bottom endpoint of the trapezoid segment. Note that we
 	// can't be a top endpoint, since line segments don't overlap.
 	if topTrapezoid.Left.Bottom() != top && topTrapezoid.Right.Bottom() != top {
@@ -184,15 +202,25 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		topTrapezoid = node.Inner.(YNode).Below.Inner.(SinkNode).Trapezoid
 	}
 
+	fmt.Println("Trapezoids after adding segment top:")
+	graph.PrintAllTrapezoids()
+	fmt.Println()
+
 	// Do the same process for the bottom point
 	node = node.FindPoint(bottom, direction)
 	var bottomTrapezoid = node.Inner.(SinkNode).Trapezoid
+	fmt.Println("Splitting bottom trapezoid:", bottomTrapezoid.String())
+
 	// This time, we need to check if we're the top endpoint of the trapezoid's segments.
 	if bottomTrapezoid.Left.Top() != bottom && bottomTrapezoid.Right.Top() != bottom {
 		graph.SplitTrapezoidHorizontally(node, bottom)
 		// We now want the top sink trapezoid, since the line segment crosses that.
 		bottomTrapezoid = node.Inner.(YNode).Above.Inner.(SinkNode).Trapezoid
 	}
+
+	fmt.Println("Trapezoids after adding segment bottom:")
+	graph.PrintAllTrapezoids()
+	fmt.Println()
 
 	// Split the trapezoids that intersect the line segment. Note at this point
 	// that `top` sits exactly on top of the top trapezoid, and `bottom` sits
@@ -273,7 +301,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 				if neighbor == nil {
 					continue
 				}
-				replaceTrapezoidNeighborOrAppend(&neighbor.TrapezoidsBelow, topTrapezoid, mergedTrapezoid)
+				neighbor.TrapezoidsBelow.ReplaceOrAdd(topTrapezoid, mergedTrapezoid)
 			}
 
 			// Note that we can't set an initial parent on the new sink, because
@@ -318,6 +346,18 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	// bottom trapezoid retains the lower neighbors
 	top.TrapezoidsBelow = [2]*Trapezoid{bottom}
 	bottom.TrapezoidsAbove = [2]*Trapezoid{top}
+
+	// Back link neighbors
+	for _, neighbor := range top.TrapezoidsAbove {
+		if neighbor != nil {
+			neighbor.TrapezoidsBelow.ReplaceOrAdd(sink.Trapezoid, top)
+		}
+	}
+	for _, neighbor := range bottom.TrapezoidsBelow {
+		if neighbor != nil {
+			neighbor.TrapezoidsAbove.ReplaceOrAdd(sink.Trapezoid, bottom)
+		}
+	}
 
 	// Create the new sink nodes
 	topSink := &QueryNode{SinkNode{Trapezoid: top, InitialParent: node}}

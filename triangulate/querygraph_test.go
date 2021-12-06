@@ -103,3 +103,65 @@ func TestNewQueryGraph(t *testing.T) {
 		})
 	}
 }
+
+// func TestAddSegment(t *testing.T) {
+// 	g := NewQueryGraph(&Segment{
+// 		Start: &Point{X: 1, Y: 2},
+// 		End:   &Point{X: 10, Y: 10},
+// 	})
+// 	g.AddSegment(&Segment{
+// 		Start: &Point{X: 8, Y: 3},
+// 		End:   &Point{X: 9, Y: 8},
+// 	})
+// }
+
+func TestSplitTrapezoidHorizontally(t *testing.T) {
+	g := NewQueryGraph(&Segment{
+		Start: &Point{X: 1, Y: 2},
+		End:   &Point{X: 10, Y: 10},
+	})
+	validateNeighborGraph(t, g)
+	p := &Point{X: 7, Y: 5}
+	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p, Left), p)
+	validateNeighborGraph(t, g)
+
+	p2 := &Point{X: 8, Y: 2}
+	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p2, Left), p2)
+	validateNeighborGraph(t, g)
+}
+
+// Validate that all neighbor relationships make sense. Every neighbor
+// relationship should be reflexive, and the set of trapezoids reachable by
+// traversing the neighbor graph should be the same as the set of trapezoids in
+// the graph.
+func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
+	// Find all the trapezoids in the graph
+	var trapezoids []*Trapezoid
+	for node := range IterateGraph(graph.Root) {
+		if node, ok := node.Inner.(SinkNode); ok {
+			trapezoids = append(trapezoids, node.Trapezoid)
+		}
+	}
+
+	for _, trapezoid := range trapezoids {
+		for _, neighbor := range trapezoid.TrapezoidsAbove {
+			if neighbor == nil {
+				continue
+			}
+			// Check reflexivity
+			assert.Contains(t, neighbor.TrapezoidsBelow, trapezoid, "above neighbor %s does not have %s as a below neighbor", neighbor, trapezoid)
+			// Check graph connectivity
+			assert.Contains(t, trapezoids, neighbor, "above neighbor %s is not in the graph", neighbor)
+		}
+		for _, neighbor := range trapezoid.TrapezoidsBelow {
+			if neighbor == nil {
+				continue
+			}
+
+			// Check reflexivity
+			assert.Contains(t, neighbor.TrapezoidsAbove, trapezoid, "below neighbor %s does not have %s as an above neighbor", neighbor, trapezoid)
+			// Check graph connectivity
+			assert.Contains(t, trapezoids, neighbor, "below neighbor %s is not in the graph", neighbor)
+		}
+	}
+}
