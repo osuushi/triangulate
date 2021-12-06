@@ -178,10 +178,6 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 }
 
 func (graph *QueryGraph) AddSegment(segment *Segment) {
-	fmt.Println("Trapezoids before adding segment:")
-	graph.PrintAllTrapezoids()
-	fmt.Println()
-
 	top := segment.Top()
 	bottom := segment.Bottom()
 
@@ -192,19 +188,11 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	node := graph.Root.FindPoint(top, direction.Opposite())
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
-	fmt.Println("Splitting top trapezoid:", topTrapezoid.String())
 	// Check if we're not a bottom endpoint of the trapezoid segment. Note that we
-	// can't be a top endpoint, since line segments don't overlap.
+	// can't be a top endpoint, since line segments don't overlap. // TODO: Is this true? What about  |  /|
 	if topTrapezoid.Left.Bottom() != top && topTrapezoid.Right.Bottom() != top {
 		graph.SplitTrapezoidHorizontally(node, top)
-		// Node is now a YNode with two sinks. We want the trapezoid of its bottom
-		// sink, since the line segment crosses that.
-		topTrapezoid = node.Inner.(YNode).Below.Inner.(SinkNode).Trapezoid
 	}
-
-	fmt.Println("Trapezoids after adding segment top:")
-	graph.PrintAllTrapezoids()
-	fmt.Println()
 
 	// Do the same process for the bottom point
 	node = node.FindPoint(bottom, direction)
@@ -226,6 +214,9 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	// that `top` sits exactly on top of the top trapezoid, and `bottom` sits
 	// exactly on the bottom of the bottom trapezoid.
 	curTrapezoid := bottomTrapezoid
+
+	fmt.Println("Bottom trapezoid", bottomTrapezoid.String())
+
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
 	for { // Loop over the trapezoids
@@ -233,10 +224,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		leftTrapezoid, rightTrapezoid := curTrapezoid.SplitBySegment(segment)
 		leftTrapezoids = append(leftTrapezoids, leftTrapezoid)
 		rightTrapezoids = append(rightTrapezoids, rightTrapezoid)
-
-		if curTrapezoid == topTrapezoid { // Done once we reach the top trapezoid
-			break
-		}
 
 		// Find the next trapezoid out of the up to two neighbors above this one. It
 		// will be the one whose bottom the line segment intersects
@@ -262,6 +249,12 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			} else {
 				curTrapezoid = curTrapezoid.TrapezoidsAbove[1]
 			}
+		}
+
+		// All of the above assumed we actually pass the trapezoid's bottom in the
+		// vertical direction. If we didn't, we break here.
+		if curTrapezoid.BottomY > top.Y-Epsilon {
+			break
 		}
 	}
 
@@ -326,6 +319,9 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			}
 		}
 	}
+
+	fmt.Println("Trapezoids after merging trapezoids:")
+	graph.PrintAllTrapezoids()
 }
 
 // Split a trapezoid horizontally, and replace its sink with a y node. node.Inner must be a sink

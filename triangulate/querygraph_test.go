@@ -104,16 +104,17 @@ func TestNewQueryGraph(t *testing.T) {
 	}
 }
 
-// func TestAddSegment(t *testing.T) {
-// 	g := NewQueryGraph(&Segment{
-// 		Start: &Point{X: 1, Y: 2},
-// 		End:   &Point{X: 10, Y: 10},
-// 	})
-// 	g.AddSegment(&Segment{
-// 		Start: &Point{X: 8, Y: 3},
-// 		End:   &Point{X: 9, Y: 8},
-// 	})
-// }
+func TestAddSegment(t *testing.T) {
+	g := NewQueryGraph(&Segment{
+		Start: &Point{X: 1, Y: 2},
+		End:   &Point{X: 10, Y: 10},
+	})
+	g.AddSegment(&Segment{
+		Start: &Point{X: 8, Y: 3},
+		End:   &Point{X: 9, Y: 8},
+	})
+	validateNeighborGraph(t, g)
+}
 
 func TestSplitTrapezoidHorizontally(t *testing.T) {
 	g := NewQueryGraph(&Segment{
