@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/osuushi/triangulate/dbg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +121,6 @@ func TestAddSegment(t *testing.T) {
 
 	g.PrintAllTrapezoids()
 
-	fmt.Println("=== adding connected segment ===")
 	// Add a segment that connects to the first one
 	connectedSegment := &Segment{firstSegment.End, &Point{X: 20, Y: 4}}
 	g.AddSegment(connectedSegment)
@@ -133,9 +131,6 @@ func TestAddSegment(t *testing.T) {
 	require.NotNil(t, sink)
 	require.IsType(t, SinkNode{}, sink.Inner)
 	trapezoid := sink.Inner.(SinkNode).Trapezoid
-	fmt.Println("Expected left segment:", dbg.Name(firstSegment))
-	fmt.Println("Expected right segment:", dbg.Name(connectedSegment))
-	fmt.Println("Point lies in trapezoid:", trapezoid.String())
 	// Validate the sides of the trapezoid we found
 	assert.Equal(t, firstSegment, trapezoid.Left)
 	assert.Equal(t, connectedSegment, trapezoid.Right)
