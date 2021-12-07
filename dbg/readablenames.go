@@ -2,6 +2,7 @@ package dbg
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -23,6 +24,10 @@ func init() {
 }
 
 func Name(obj interface{}) string {
+	if reflect.ValueOf(obj).IsNil() {
+		return "Ø"
+	}
+
 	if r, ok := memo[obj]; ok {
 		return r
 	}

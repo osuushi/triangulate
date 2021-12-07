@@ -220,6 +220,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	var rightTrapezoids []*Trapezoid
 	for { // Loop over the trapezoids
 		// Split this trapezoid horizontally
+		fmt.Println("Splitting trapezoid:", curTrapezoid.String())
 		leftTrapezoid, rightTrapezoid := curTrapezoid.SplitBySegment(segment)
 		leftTrapezoids = append(leftTrapezoids, leftTrapezoid)
 		rightTrapezoids = append(rightTrapezoids, rightTrapezoid)
@@ -250,9 +251,9 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			}
 		}
 
-		// All of the above assumed we actually pass the trapezoid's bottom in the
-		// vertical direction. If we didn't, we break here.
-		if top.Below(curTrapezoid.Bottom) {
+		// We'll stop once we get to the trapezoid that our segment top is the
+		// bottom of. That's the one we created by splitting horizontally.
+		if top == curTrapezoid.Bottom {
 			break
 		}
 	}
@@ -282,7 +283,8 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		// Merge each chunk
 		for _, chunk := range chunks {
 			mergedTrapezoid := new(Trapezoid)
-			*mergedTrapezoid = *chunk[0]
+			bottomTrapezoid := chunk[0]
+			*mergedTrapezoid = *bottomTrapezoid
 			topTrapezoid := chunk[len(chunk)-1]
 			// Merge geometry
 			mergedTrapezoid.Top = topTrapezoid.Top
@@ -294,6 +296,13 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 					continue
 				}
 				neighbor.TrapezoidsBelow.ReplaceOrAdd(topTrapezoid, mergedTrapezoid)
+			}
+
+			for _, neighbor := range mergedTrapezoid.TrapezoidsBelow {
+				if neighbor == nil {
+					continue
+				}
+				neighbor.TrapezoidsAbove.ReplaceOrAdd(bottomTrapezoid, mergedTrapezoid)
 			}
 
 			// Note that we can't set an initial parent on the new sink, because

@@ -87,6 +87,7 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	for i := 0; i < 2; i++ {
 		neighbor := t.TrapezoidsAbove[i]
 		if neighbor != nil {
+			fmt.Println("Neighbor", dbg.Name(neighbor), "of", dbg.Name(t), "is above")
 			// Check if the top of the segment is right of the neighbor's left edge.
 			// If so, it is an above neighbor to the left split. (left edge at infinity
 			// is left of everything)
@@ -106,6 +107,7 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 
 		neighbor = t.TrapezoidsBelow[i]
 		if neighbor != nil {
+			fmt.Println("Neighbor", dbg.Name(neighbor), "of", dbg.Name(t), "is below")
 			// Check if the bottom of the segment is right of the neighbor's left
 			// edge. If so, it's a below neighbor to the left split.
 			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
@@ -121,6 +123,7 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			}
 		}
 	}
+	fmt.Println("--")
 	return left, right
 }
 
@@ -129,7 +132,15 @@ func (t *Trapezoid) CanMergeWith(other *Trapezoid) bool {
 }
 
 func (t *Trapezoid) String() string {
-	return fmt.Sprintf("Trapezoid %s { Above: %s, Below: %s }", dbg.Name(t), t.TrapezoidsAbove.String(), t.TrapezoidsBelow.String())
+	return fmt.Sprintf("Trapezoid %s { ⬆ %s, ⬇ %s } <L: %s, R: %s, T: %s, B: %s>",
+		dbg.Name(t),
+		t.TrapezoidsAbove.String(),
+		t.TrapezoidsBelow.String(),
+		dbg.Name(t.Left),
+		dbg.Name(t.Right),
+		dbg.Name(t.Top),
+		dbg.Name(t.Bottom),
+	)
 }
 
 func (tl *TrapezoidNeighborList) String() string {
@@ -158,6 +169,7 @@ func (tl *TrapezoidNeighborList) Add(t *Trapezoid) {
 
 // Replace a trapezoid with another, or append it if the original isn't there
 func (tl *TrapezoidNeighborList) ReplaceOrAdd(orig *Trapezoid, replacement *Trapezoid) {
+	fmt.Println("Want to replace", dbg.Name(orig), "with", dbg.Name(replacement), "in", tl.String())
 	for i, neighbor := range *tl {
 		if neighbor == orig {
 			(*tl)[i] = replacement
