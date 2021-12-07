@@ -111,14 +111,14 @@ func TestAddSegment(t *testing.T) {
 		End:   &Point{X: 10, Y: 10},
 	}
 	g := NewQueryGraph(firstSegment)
-	// g.AddSegment(&Segment{
-	// 	Start: &Point{X: 8, Y: 3},
-	// 	End:   &Point{X: 9, Y: 8},
-	// })
+	g.AddSegment(&Segment{
+		Start: &Point{X: 8, Y: 3},
+		End:   &Point{X: 9, Y: 8},
+	})
 
-	// // Add a segment below everything
-	// g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
-	// validateNeighborGraph(t, g)
+	// Add a segment below everything
+	g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
+	validateNeighborGraph(t, g)
 
 	g.PrintAllTrapezoids()
 
