@@ -2,7 +2,9 @@ package triangulate
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 // This implements the data structures for Seidel 1991 for trapezoidizing a non-monotone polygon
@@ -403,4 +405,63 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
+}
+
+// Add a polygon to the graph. If the polygon winds clockwise, this will end up
+// producing a hole. Otherwise, it will be filled. The polygon must not
+// intersect any existing segments in the graph.
+//
+// By default, this process is pseudorandom, but deterministic. This is because
+// predictable results are easier to debug. However, this raises the potential
+// for adversarial inputs. If you are using untrusted input, you should pass
+// "true" for proper randomization.
+func (graph *QueryGraph) AddPolygon(poly *Polygon, nondeterministic ...bool) {
+	var seed int64
+	if len(nondeterministic) > 0 && nondeterministic[0] {
+		// TODO: We should make an adapter for crypto/random, and secure random
+		// numbers when nondeterministic mode is selected. Low priority, as it would
+		// be quite difficult to construct an input on the fly that would cause
+		// pathological performance based on a time based seed.
+		seed = time.Now().UnixNano()
+	}
+	source := rand.NewSource(seed)
+	r := rand.New(source)
+	// Create the segments
+	segments := make([]*Segment, 0, len(poly.Points))
+	for i := 0; i < len(poly.Points); i++ {
+		segments = append(segments, &Segment{poly.Points[i], poly.Points[(i+1)%len(poly.Points)]})
+	}
+
+	// Shuffle the segments. This is what gives us expected O(nlogn) time
+	r.Shuffle(len(segments), func(i, j int) {
+		segments[i], segments[j] = segments[j], segments[i]
+	})
+
+	// If this is an empty graph, initialize with the first segment
+	if graph == nil {
+		newGraph := NewQueryGraph(segments[0])
+		segments = segments[1:]
+		*graph = *newGraph
+	}
+
+	// Add the segments
+	//
+	// TODO: Add the preprocessing step which finds new search roots for every
+	// point. That step will make the algorithm O(nlog*n)
+	for _, segment := range segments {
+		graph.AddSegment(segment)
+	}
+}
+
+// Fast test for point-in-polygon using the trapezoid graph. Output is not
+// defined for points exactly on the edge of the graph.
+func (g *QueryGraph) ContainsPoint(point *Point) bool {
+	// Find the trapezoid containing the point
+	containingTrapezoid := g.Root.FindPoint(point, DefaultDirection)
+	if containingTrapezoid == nil {
+		return false
+	}
+
+	// Check if the trapezoid is inside
+	return containingTrapezoid.Inner.(SinkNode).Trapezoid.IsInside()
 }
