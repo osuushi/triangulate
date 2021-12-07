@@ -2,7 +2,6 @@ package triangulate
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -96,35 +95,35 @@ func NewQueryGraph(segment *Segment) *QueryGraph {
 	*/
 
 	top := &Trapezoid{
-		Left:    nil,
-		Right:   nil,
-		TopY:    math.Inf(1),
-		BottomY: a.Y,
+		Left:   nil,
+		Right:  nil,
+		Top:    nil,
+		Bottom: a,
 	}
 
 	top.Sink = &QueryNode{SinkNode{Trapezoid: top}}
 
 	left := &Trapezoid{
-		Left:    nil,
-		Right:   segment,
-		TopY:    a.Y,
-		BottomY: b.Y,
+		Left:   nil,
+		Right:  segment,
+		Top:    a,
+		Bottom: b,
 	}
 	left.Sink = &QueryNode{SinkNode{Trapezoid: left}}
 
 	right := &Trapezoid{
-		Left:    segment,
-		Right:   nil,
-		TopY:    a.Y,
-		BottomY: b.Y,
+		Left:   segment,
+		Right:  nil,
+		Top:    a,
+		Bottom: b,
 	}
 	right.Sink = &QueryNode{SinkNode{Trapezoid: right}}
 
 	bottom := &Trapezoid{
-		Left:    nil,
-		Right:   nil,
-		TopY:    b.Y,
-		BottomY: math.Inf(-1),
+		Left:   nil,
+		Right:  nil,
+		Top:    b,
+		Bottom: nil,
 	}
 	bottom.Sink = &QueryNode{SinkNode{Trapezoid: bottom}}
 
@@ -253,7 +252,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 
 		// All of the above assumed we actually pass the trapezoid's bottom in the
 		// vertical direction. If we didn't, we break here.
-		if curTrapezoid.BottomY > top.Y-Epsilon {
+		if top.Below(curTrapezoid.Bottom) {
 			break
 		}
 	}
@@ -286,7 +285,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			*mergedTrapezoid = *chunk[0]
 			topTrapezoid := chunk[len(chunk)-1]
 			// Merge geometry
-			mergedTrapezoid.TopY = topTrapezoid.TopY
+			mergedTrapezoid.Top = topTrapezoid.Top
 			// Merge neighbors
 			mergedTrapezoid.TrapezoidsAbove = topTrapezoid.TrapezoidsAbove
 			// Make the neighbors agree
@@ -336,8 +335,8 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	*bottom = *sink.Trapezoid
 
 	// Create the dividing line at the point's Y value
-	top.BottomY = point.Y
-	bottom.TopY = point.Y
+	top.Bottom = point
+	bottom.Top = point
 
 	// Set neighbors. The top trapezoid retains the upper neighbors, and the
 	// bottom trapezoid retains the lower neighbors

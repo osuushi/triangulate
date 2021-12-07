@@ -8,8 +8,22 @@ import (
 )
 
 type Trapezoid struct {
-	Left, Right                      *Segment
-	TopY, BottomY                    float64               // y-coordinates of top and bottom of trapezoid
+	Left, Right *Segment
+	// The top and bottom are points, although geometrically, you can think of
+	// them as the y values of those points. There are two reasons that points
+	// must be used instead of y values:
+	//
+	// 1. A critical assumption of the algorithm is that no two points lie on the
+	// same horizontal. This is simulated by lexicographic ordering, but it means
+	// that _every_ Y comparison must have an X value involved to break ties.
+	//
+	// 2. The time will come when we ask every trapezoid "what points on your
+	// boundary are vertices of the polygon"? Because of the unique Y value
+	// assumption, the answer is _always_ two points. Those two points are the top
+	// and bottom fields. Note that in some cases, these will be an endpoint of a
+	// segment, and in some cases, they'll lie on the top or bottom of the
+	// trapezoid, away from the left and right sides.
+	Top, Bottom                      *Point
 	TrapezoidsAbove, TrapezoidsBelow TrapezoidNeighborList // Up to two neighbors in each direction
 	Sink                             *QueryNode
 }
@@ -36,10 +50,13 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	if segment.IsHorizontal() {
 		panic("horizontal segments should never be tested for bottom intersection")
 	}
+	if t.Bottom == nil { // Bottom is at infinity, nothing can intersect it
+		return false
+	}
 
 	// Find the x value for the segment at the bottom of the trapezoid
-	x := segment.SolveForX(t.BottomY)
-	point := &Point{x, t.BottomY}
+	x := segment.SolveForX(t.Bottom.Y)
+	point := &Point{x, t.Bottom.Y}
 
 	return t.Left.IsLeftOf(point) && !t.Right.IsLeftOf(point)
 }
