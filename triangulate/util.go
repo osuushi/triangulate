@@ -152,7 +152,7 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	 \  <- Right
 	  o
 */
-func (s *Segment) Direction() Direction {
+func (s *Segment) XDirection() XDirection {
 	top := s.Top()
 	bottom := s.Bottom()
 	if top.X > bottom.X {
@@ -184,8 +184,16 @@ func (s *Segment) Bottom() *Point {
 	return s.Start
 }
 
-func (dir Direction) Opposite() Direction {
+func (dir XDirection) Opposite() XDirection {
 	return dir ^ 1
+}
+
+func (dir YDirection) Opposite() YDirection {
+	return dir ^ 1
+}
+
+func (dir Direction) Opposite() Direction {
+	return Direction{dir.X.Opposite(), dir.Y.Opposite()}
 }
 
 func (s *Segment) IsHorizontal() bool {

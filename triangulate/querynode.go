@@ -1,5 +1,7 @@
 package triangulate
 
+import "fmt"
+
 // Node for the query structure. The query structure allows us to navigate the
 // trapezoid set efficiently, and can be built in O(nlog(n)) time. (TODO: There
 // is a preprocessing loop you can use to get this to O(nlog*n) time. Implement
@@ -42,6 +44,7 @@ type QueryNode struct {
 }
 
 func (n *QueryNode) FindPoint(p *Point, dir Direction) *QueryNode {
+	fmt.Printf("Finding point: %T\n", n.Inner)
 	// If we found a sink node, we're done
 	if _, ok := n.Inner.(SinkNode); ok {
 		return n
@@ -79,6 +82,18 @@ type YNode struct {
 }
 
 func (node YNode) FindPoint(point *Point, dir Direction) *QueryNode {
+	// For equal points, we must use the direction given
+	// Note that this only applies when directly comparing vertices, so pointer
+	// comparison is fine.
+	if node.Key == point {
+		switch dir.Y {
+		case Up:
+			return node.Above.FindPoint(point, dir)
+		case Down:
+			return node.Below.FindPoint(point, dir)
+		}
+	}
+
 	if point.Below(node.Key) {
 		return node.Below.FindPoint(point, dir)
 	} else {
@@ -99,7 +114,7 @@ type XNode struct {
 func (node XNode) FindPoint(point *Point, dir Direction) *QueryNode {
 	// First check if it's an endpoint. If so, we use dir to determine which way to go.
 	if node.Key.Start == point || node.Key.End == point {
-		switch dir {
+		switch dir.X {
 		case Left:
 			return node.Left.FindPoint(point, dir)
 		case Right:

@@ -9,12 +9,27 @@ import (
 // into multiple segments. It uses the same lexicographic convention as
 // elsewhere which avoids equal y values by lexicographic rotation.
 
-type Direction int
+type XDirection int
 
 const (
-	Left Direction = iota
+	Left XDirection = iota
 	Right
 )
+
+type YDirection int
+
+const (
+	Down = iota
+	Up
+)
+
+type Direction struct {
+	X XDirection
+	Y YDirection
+}
+
+// This is an arbitrary direction for when you don't really care (e.g. tests)
+var DefaultDirection = Direction{X: Left, Y: Down}
 
 type QueryGraph struct {
 	Root *QueryNode
@@ -162,6 +177,7 @@ func NewQueryGraph(segment *Segment) *QueryGraph {
 			}
 		}
 	}
+
 	return &QueryGraph{Root: graph}
 }
 
@@ -180,21 +196,25 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	top := segment.Top()
 	bottom := segment.Bottom()
 
-	// bottom := segment.Bottom()
-	direction := segment.Direction()
+	topToBottomDirection := Direction{
+		X: segment.XDirection(),
+		Y: Down,
+	}
 
 	// Find the node that contains the top point, coming from the bottom
-	node := graph.Root.FindPoint(top, direction.Opposite())
+	node := graph.Root.FindPoint(top, topToBottomDirection)
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
+	fmt.Println("Found top trapezoid:, ", topTrapezoid.String())
 	// Check if we're not a bottom endpoint of the trapezoid segment. Note that we
 	// can't be a top endpoint, since line segments don't overlap. // TODO: Is this true? What about  |  /|
 	if topTrapezoid.Left.Bottom() != top && topTrapezoid.Right.Bottom() != top {
+		fmt.Println("Splitting top trapezoid")
 		graph.SplitTrapezoidHorizontally(node, top)
 	}
 
 	// Do the same process for the bottom point
-	node = node.FindPoint(bottom, direction)
+	node = node.FindPoint(bottom, topToBottomDirection.Opposite())
 	var bottomTrapezoid = node.Inner.(SinkNode).Trapezoid
 	fmt.Println("Splitting bottom trapezoid:", bottomTrapezoid.String())
 
@@ -202,6 +222,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	if bottomTrapezoid.Left.Top() != bottom && bottomTrapezoid.Right.Top() != bottom {
 		graph.SplitTrapezoidHorizontally(node, bottom)
 		// We now want the top sink trapezoid, since the line segment crosses that.
+		fmt.Println("Result of splitting bottom point:")
 		bottomTrapezoid = node.Inner.(YNode).Above.Inner.(SinkNode).Trapezoid
 	}
 
@@ -220,7 +241,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	var rightTrapezoids []*Trapezoid
 	for { // Loop over the trapezoids
 		// Split this trapezoid horizontally
-		fmt.Println("Splitting trapezoid:", curTrapezoid.String())
 		leftTrapezoid, rightTrapezoid := curTrapezoid.SplitBySegment(segment)
 		leftTrapezoids = append(leftTrapezoids, leftTrapezoid)
 		rightTrapezoids = append(rightTrapezoids, rightTrapezoid)
@@ -258,13 +278,22 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		}
 	}
 
+	fmt.Println("Trapezoids on left chain:")
+	for _, trapezoid := range leftTrapezoids {
+		fmt.Println(trapezoid.String())
+	}
+	fmt.Println("Trapezoids on right chain:")
+	for _, trapezoid := range rightTrapezoids {
+		fmt.Println(trapezoid.String())
+	}
+
 	// We now have left and right chains of triangles that were split by the line
 	// segment, but some of them may share edges, so we need to merge them. All of
 	// the left trapezoids have the segment as a right edge and vice versa, so we
 	// can treat each chain of trapezoids separately
 
 	for i, chain := range [2][]*Trapezoid{leftTrapezoids, rightTrapezoids} {
-		side := Direction(i)
+		side := XDirection(i)
 		// Divide the chain into chunks of connected trapezoids. Trapezoids can only
 		// be merged if they're consecutive in the chain
 		var chunks [][]*Trapezoid
@@ -317,6 +346,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 				fmt.Printf("Updating sink: %T\n", node.Inner)
 				if side == Left { // On left side, we're making a new XNode
 					xnode = XNode{
+						Key:  segment,
 						Left: mergedTrapezoid.Sink,
 					}
 				} else { // On right side, we created the xnode, so we just need to pull it off

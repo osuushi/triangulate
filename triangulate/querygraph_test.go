@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/osuushi/triangulate/dbg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -82,7 +83,7 @@ func TestNewQueryGraph(t *testing.T) {
 		right:  "right",
 	}
 	assertTrapezoidForPoint := func(t *testing.T, trapezoid *Trapezoid, x, y float64) {
-		sink := root.FindPoint(&Point{x, y}, Left)
+		sink := root.FindPoint(&Point{x, y}, DefaultDirection)
 		require.NotNil(t, sink)
 		require.IsType(t, SinkNode{}, sink.Inner)
 		assert.Equal(t, trapNames[trapezoid], trapNames[sink.Inner.(SinkNode).Trapezoid])
@@ -105,15 +106,39 @@ func TestNewQueryGraph(t *testing.T) {
 }
 
 func TestAddSegment(t *testing.T) {
-	g := NewQueryGraph(&Segment{
+	firstSegment := &Segment{
 		Start: &Point{X: 1, Y: 2},
 		End:   &Point{X: 10, Y: 10},
-	})
-	g.AddSegment(&Segment{
-		Start: &Point{X: 8, Y: 3},
-		End:   &Point{X: 9, Y: 8},
-	})
+	}
+	g := NewQueryGraph(firstSegment)
+	// g.AddSegment(&Segment{
+	// 	Start: &Point{X: 8, Y: 3},
+	// 	End:   &Point{X: 9, Y: 8},
+	// })
+
+	// // Add a segment below everything
+	// g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
+	// validateNeighborGraph(t, g)
+
+	g.PrintAllTrapezoids()
+
+	fmt.Println("=== adding connected segment ===")
+	// Add a segment that connects to the first one
+	connectedSegment := &Segment{firstSegment.End, &Point{X: 20, Y: 4}}
+	g.AddSegment(connectedSegment)
 	validateNeighborGraph(t, g)
+
+	// Find a point that lies between the two connected segments
+	sink := g.Root.FindPoint(&Point{X: 10, Y: 9}, DefaultDirection)
+	require.NotNil(t, sink)
+	require.IsType(t, SinkNode{}, sink.Inner)
+	trapezoid := sink.Inner.(SinkNode).Trapezoid
+	fmt.Println("Expected left segment:", dbg.Name(firstSegment))
+	fmt.Println("Expected right segment:", dbg.Name(connectedSegment))
+	fmt.Println("Point lies in trapezoid:", trapezoid.String())
+	// Validate the sides of the trapezoid we found
+	assert.Equal(t, firstSegment, trapezoid.Left)
+	assert.Equal(t, connectedSegment, trapezoid.Right)
 }
 
 func TestSplitTrapezoidHorizontally(t *testing.T) {
@@ -123,11 +148,11 @@ func TestSplitTrapezoidHorizontally(t *testing.T) {
 	})
 	validateNeighborGraph(t, g)
 	p := &Point{X: 7, Y: 5}
-	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p, Left), p)
+	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p, DefaultDirection), p)
 	validateNeighborGraph(t, g)
 
 	p2 := &Point{X: 8, Y: 2}
-	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p2, Left), p2)
+	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p2, DefaultDirection), p2)
 	validateNeighborGraph(t, g)
 }
 

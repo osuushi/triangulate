@@ -67,6 +67,7 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 // still point to the original trapezoid's sink. This must be fixed after
 // trapezoids with agreeing edges are merged.
 func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
+	fmt.Println("Splitting", t.String(), "by", dbg.Name(segment))
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
