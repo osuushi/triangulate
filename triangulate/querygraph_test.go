@@ -66,14 +66,14 @@ func TestNewQueryGraph(t *testing.T) {
 	right := sink.Trapezoid
 
 	// Assert trapezoid neighbor relationships
-	assert.ElementsMatch(t, [2]*Trapezoid{}, top.TrapezoidsAbove)
-	assert.ElementsMatch(t, [2]*Trapezoid{left, right}, top.TrapezoidsBelow)
-	assert.ElementsMatch(t, [2]*Trapezoid{}, bottom.TrapezoidsBelow)
-	assert.ElementsMatch(t, [2]*Trapezoid{left, right}, bottom.TrapezoidsAbove)
-	assert.ElementsMatch(t, [2]*Trapezoid{top}, left.TrapezoidsAbove)
-	assert.ElementsMatch(t, [2]*Trapezoid{bottom}, left.TrapezoidsBelow)
-	assert.ElementsMatch(t, [2]*Trapezoid{top}, right.TrapezoidsAbove)
-	assert.ElementsMatch(t, [2]*Trapezoid{bottom}, right.TrapezoidsBelow)
+	assert.ElementsMatch(t, TrapezoidNeighborList{}, top.TrapezoidsAbove)
+	assert.ElementsMatch(t, TrapezoidNeighborList{left, right}, top.TrapezoidsBelow)
+	assert.ElementsMatch(t, TrapezoidNeighborList{}, bottom.TrapezoidsBelow)
+	assert.ElementsMatch(t, TrapezoidNeighborList{left, right}, bottom.TrapezoidsAbove)
+	assert.ElementsMatch(t, TrapezoidNeighborList{top}, left.TrapezoidsAbove)
+	assert.ElementsMatch(t, TrapezoidNeighborList{bottom}, left.TrapezoidsBelow)
+	assert.ElementsMatch(t, TrapezoidNeighborList{top}, right.TrapezoidsAbove)
+	assert.ElementsMatch(t, TrapezoidNeighborList{bottom}, right.TrapezoidsBelow)
 
 	// Test some points
 	trapNames := map[*Trapezoid]string{ // To make test failures easier to read
@@ -83,7 +83,7 @@ func TestNewQueryGraph(t *testing.T) {
 		right:  "right",
 	}
 	assertTrapezoidForPoint := func(t *testing.T, trapezoid *Trapezoid, x, y float64) {
-		sink := root.FindPoint(&Point{x, y}, DefaultDirection)
+		sink := graph.FindPoint(&Point{x, y}, DefaultDirection)
 		require.NotNil(t, sink)
 		require.IsType(t, SinkNode{}, sink.Inner)
 		assert.Equal(t, trapNames[trapezoid], trapNames[sink.Inner.(SinkNode).Trapezoid])
@@ -130,7 +130,7 @@ func TestAddSegment(t *testing.T) {
 	validateNeighborGraph(t, g)
 
 	// Find a point that lies between the two connected segments
-	sink := g.Root.FindPoint(&Point{X: 10, Y: 9}, DefaultDirection)
+	sink := g.FindPoint(&Point{X: 10, Y: 9}, DefaultDirection)
 	require.NotNil(t, sink)
 	require.IsType(t, SinkNode{}, sink.Inner)
 	trapezoid := sink.Inner.(SinkNode).Trapezoid
@@ -146,11 +146,11 @@ func TestSplitTrapezoidHorizontally(t *testing.T) {
 	})
 	validateNeighborGraph(t, g)
 	p := &Point{X: 7, Y: 5}
-	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p, DefaultDirection), p)
+	g.SplitTrapezoidHorizontally(g.FindPoint(p, DefaultDirection), p)
 	validateNeighborGraph(t, g)
 
 	p2 := &Point{X: 8, Y: 2}
-	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p2, DefaultDirection), p2)
+	g.SplitTrapezoidHorizontally(g.FindPoint(p2, DefaultDirection), p2)
 	validateNeighborGraph(t, g)
 }
 
@@ -180,12 +180,19 @@ func TestAddPolygon_Circle(t *testing.T) {
 	g := &QueryGraph{}
 	var points []*Point
 	var radius float64 = 3
-	n := 4
+	n := 10
+	adjusted := false
 	for i := 0; i < n; i++ {
 		angle := 2 * math.Pi * float64(i) / float64(n)
 		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
+		// Adjustment to avoid equal y values
+		if !adjusted && math.Abs(points[i].Y+2.85) < .01 {
+			fmt.Println("Adjusting", points[i])
+			adjusted = true
+			points[i].Y = -4 // avoid horizontal
+		}
 	}
-	points[0].Y += 1 // TODO: Remove me. This is ensuring no equal y values to eliminate that variable
+
 	fmt.Println("Adding points:", points)
 	g.AddPolygon(Polygon{points})
 
@@ -200,7 +207,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			angle := 2 * math.Pi * float64(i) / 20
 			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
-			trap := g.Root.FindPoint(p, DefaultDirection).Inner.(SinkNode).Trapezoid
+			trap := g.FindPoint(p, DefaultDirection).Inner.(SinkNode).Trapezoid
 			fmt.Println("Found point in:", trap)
 			fmt.Println("Left segment:", trap.Left)
 			fmt.Println("Right segment:", trap.Right)

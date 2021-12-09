@@ -209,6 +209,11 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 	fmt.Println(strings.Join(parts, "\n"))
 }
 
+func (graph *QueryGraph) FindPoint(p *Point, dir Direction) *QueryNode {
+	fmt.Println("Finding point", p)
+	return graph.Root.FindPoint(p, dir)
+}
+
 func (graph *QueryGraph) AddSegment(segment *Segment) {
 	if segment == nil {
 		panic("nil segment")
@@ -222,7 +227,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	}
 
 	// Find the node that contains the top point, coming from the bottom
-	node := graph.Root.FindPoint(top, topToBottomDirection)
+	node := graph.FindPoint(top, topToBottomDirection)
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
 
@@ -234,7 +239,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	}
 
 	// Do the same process for the bottom point
-	node = node.FindPoint(bottom, topToBottomDirection.Opposite())
+	node = graph.FindPoint(bottom, topToBottomDirection.Opposite())
 	var bottomTrapezoid = node.Inner.(SinkNode).Trapezoid
 
 	// Same check
@@ -253,6 +258,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	graph.dbgDraw(50)
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
+trapezoidLoop:
 	for { // Loop over the trapezoids
 		// Split this trapezoid horizontally
 		leftTrapezoid, rightTrapezoid := curTrapezoid.SplitBySegment(segment)
@@ -262,27 +268,13 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		// Find the next trapezoid out of the up to two neighbors above this one. It
 		// will be the one whose bottom the line segment intersects
 
-		// Check single neighbor cases
-		var singleNeighbor bool
-		for i, neighbor := range curTrapezoid.TrapezoidsAbove {
-			if neighbor == nil {
-				singleNeighbor = true
-				curTrapezoid = curTrapezoid.TrapezoidsAbove[i^1] // choose other neighbor
+		for _, neighbor := range curTrapezoid.TrapezoidsAbove {
+			if neighbor != nil && neighbor.BottomIntersectsSegment(segment) {
+				curTrapezoid = neighbor
 				break
 			}
-		}
-
-		if !singleNeighbor {
-			// Check the first neighbor to see if it intersects the line segment. Only
-			// one of them can
-			neighbor := curTrapezoid.TrapezoidsAbove[0] // we pick the first neighbor arbitrarily
-
-			// Note that we only have to check that the bottom intersects, since we're scanning from below
-			if neighbor.BottomIntersectsSegment(segment) {
-				curTrapezoid = neighbor
-			} else {
-				curTrapezoid = curTrapezoid.TrapezoidsAbove[1]
-			}
+			// If we don't find a neighbor, we're done splitting
+			break trapezoidLoop
 		}
 
 		// We'll stop once we get to the trapezoid that our segment top is the
@@ -356,7 +348,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 						Key:  segment,
 						Left: mergedTrapezoid.Sink,
 					}
-				} else { // On right side, we created the xnode, so we just need to pull it off
+				} else { // On right side, we created the xnode when we did the left side, so we just need to update it
 					xnode = node.Inner.(XNode)
 					xnode.Right = mergedTrapezoid.Sink
 				}
@@ -370,6 +362,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 // Split a trapezoid horizontally, and replace its sink with a y node. node.Inner must be a sink
 func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Point) {
 	sink := node.Inner.(SinkNode)
+	fmt.Printf("Splitting trapezoid %s horizontally at %v\n", sink.Trapezoid.String(), point)
 	top := new(Trapezoid)
 	bottom := new(Trapezoid)
 	origTop := sink.Trapezoid.Top
@@ -391,8 +384,8 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 
 	// Set neighbors. The top trapezoid retains the upper neighbors, and the
 	// bottom trapezoid retains the lower neighbors
-	top.TrapezoidsBelow = [2]*Trapezoid{bottom}
-	bottom.TrapezoidsAbove = [2]*Trapezoid{top}
+	top.TrapezoidsBelow = TrapezoidNeighborList{bottom}
+	bottom.TrapezoidsAbove = TrapezoidNeighborList{top}
 
 	top.Sink = &QueryNode{SinkNode{Trapezoid: top, InitialParent: node}}
 	bottom.Sink = &QueryNode{SinkNode{Trapezoid: bottom, InitialParent: node}}
@@ -473,7 +466,7 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 // defined for points exactly on the edge of the graph.
 func (g *QueryGraph) ContainsPoint(point *Point) bool {
 	// Find the trapezoid containing the point
-	containingTrapezoid := g.Root.FindPoint(point, DefaultDirection)
+	containingTrapezoid := g.FindPoint(point, DefaultDirection)
 	if containingTrapezoid == nil {
 		return false
 	}

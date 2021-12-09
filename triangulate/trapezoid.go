@@ -25,11 +25,14 @@ type Trapezoid struct {
 	// segment, and in some cases, they'll lie on the top or bottom of the
 	// trapezoid, away from the left and right sides.
 	Top, Bottom                      *Point
-	TrapezoidsAbove, TrapezoidsBelow TrapezoidNeighborList // Up to two neighbors in each direction
+	TrapezoidsAbove, TrapezoidsBelow TrapezoidNeighborList
 	Sink                             *QueryNode
 }
 
-type TrapezoidNeighborList [2]*Trapezoid
+// Trapezoids can have up to two neighbors above and below them in the stable
+// state, but while splitting, they can have up to three below. This should
+// never be the case after splitting is complete.
+type TrapezoidNeighborList [3]*Trapezoid
 
 // Is the trapezoid inside the polygon?
 func (t *Trapezoid) IsInside() bool {
@@ -59,7 +62,7 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	x := segment.SolveForX(t.Bottom.Y)
 	point := &Point{x, t.Bottom.Y}
 
-	return t.Left.IsLeftOf(point) && !t.Right.IsLeftOf(point)
+	return t.Left.IsLeftOf(point) && t.Right.IsRightOf(point)
 }
 
 // Split a trapezoid vertically with a segment, returning the two trapezoids. It
@@ -68,71 +71,80 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 // still point to the original trapezoid's sink. This must be fixed after
 // trapezoids with agreeing edges are merged.
 func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
-	fmt.Println("Splitting trapezoid", t.String())
+	fmt.Println("Splitting trapezoid on segment", t.String())
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
+	fmt.Println("Left:", left.DbgName())
+	fmt.Println("Right:", right.DbgName())
 	*left = *t
 	*right = *t
 	left.Right = segment
 	right.Left = segment
 
 	// Clear neighbors
-	left.TrapezoidsAbove = [2]*Trapezoid{}
-	left.TrapezoidsBelow = [2]*Trapezoid{}
-	right.TrapezoidsAbove = [2]*Trapezoid{}
-	right.TrapezoidsBelow = [2]*Trapezoid{}
+	left.TrapezoidsAbove = TrapezoidNeighborList{}
+	left.TrapezoidsBelow = TrapezoidNeighborList{}
+	right.TrapezoidsAbove = TrapezoidNeighborList{}
+	right.TrapezoidsBelow = TrapezoidNeighborList{}
 
 	// Adjust neighbors
 	top := segment.Top()
 	bottom := segment.Bottom()
-	for i := 0; i < 2; i++ {
-		neighbor := t.TrapezoidsAbove[i]
-		if neighbor != nil {
-
-			if !left.IsDegenerateOnSide(Up) {
-				// Check if the top of the segment is right of the neighbor's left edge.
-				// If so, it is an above neighbor to the left split. (left edge at infinity
-				// is left of everything)
-				if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
-					left.TrapezoidsAbove.Add(neighbor)
-					neighbor.TrapezoidsBelow.ReplaceOrAdd(t, left)
-				}
-			}
-
-			if !right.IsDegenerateOnSide(Up) {
-				// Check if the top of the segment is left of the neighbor's right edge.
-				// If so, it's a neighbor of the right split. (right edge at infinity is
-				// right of everything)
-				if neighbor.Right == nil || !neighbor.Right.IsLeftOf(top) {
-					fmt.Println("Adding neighbor", neighbor.DbgName())
-					right.TrapezoidsAbove.Add(neighbor)
-					neighbor.TrapezoidsBelow.ReplaceOrAdd(t, right)
-				}
+	for _, neighbor := range t.TrapezoidsAbove {
+		if neighbor == nil {
+			continue
+		}
+		// Remove the old trapezoid as a neighbor
+		neighbor.TrapezoidsBelow.Remove(t)
+		if !left.IsDegenerateOnSide(Up) {
+			// Check if the top of the segment is right of the neighbor's left edge.
+			// If so, it is an above neighbor to the left split. (left edge at infinity
+			// is left of everything)
+			if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
+				left.TrapezoidsAbove.Add(neighbor)
+				neighbor.TrapezoidsBelow.Add(left)
 			}
 		}
 
-		neighbor = t.TrapezoidsBelow[i]
-		if neighbor != nil {
-			if !left.IsDegenerateOnSide(Down) {
-				// Check if the bottom of the segment is right of the neighbor's left
-				// edge. If so, it's a below neighbor to the left split.
-				if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
-					left.TrapezoidsBelow.Add(neighbor)
-					neighbor.TrapezoidsAbove.ReplaceOrAdd(t, left)
-				}
+		if !right.IsDegenerateOnSide(Up) {
+			// Check if the top of the segment is left of the neighbor's right edge.
+			// If so, it's a neighbor of the right split. (right edge at infinity is
+			// right of everything)
+			if neighbor.Right == nil || neighbor.Right.IsRightOf(top) {
+				right.TrapezoidsAbove.Add(neighbor)
+				neighbor.TrapezoidsBelow.Add(right)
 			}
+		}
 
-			if !right.IsDegenerateOnSide(Down) {
-				// Check if the bottom of the segment is left of the neighbor's right edge.
-				// If so, it's a neighbor of the right split.
-				if neighbor.Right == nil || !neighbor.Right.IsLeftOf(bottom) {
-					right.TrapezoidsBelow.Add(neighbor)
-					neighbor.TrapezoidsAbove.ReplaceOrAdd(t, right)
-				}
+	}
+
+	for _, neighbor := range t.TrapezoidsBelow {
+		if neighbor == nil {
+			continue
+		}
+		neighbor.TrapezoidsAbove.Remove(t)
+		if !left.IsDegenerateOnSide(Down) {
+			// Check if the bottom of the segment is right of the neighbor's left
+			// edge. If so, it's a below neighbor to the left split.
+			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
+				left.TrapezoidsBelow.Add(neighbor)
+				neighbor.TrapezoidsAbove.Add(left)
+			}
+		}
+
+		if !right.IsDegenerateOnSide(Down) {
+			// Check if the bottom of the segment is left of the neighbor's right edge.
+			// If so, it's a neighbor of the right split.
+			if neighbor.Right == nil || neighbor.Right.IsRightOf(bottom) {
+				fmt.Println("Adding neighbor", neighbor.DbgName(), "to", right.DbgName())
+				fmt.Println(neighbor.String())
+				right.TrapezoidsBelow.Add(neighbor)
+				neighbor.TrapezoidsAbove.Add(right)
 			}
 		}
 	}
+
 	return left, right
 }
 
@@ -219,6 +231,15 @@ func (tl *TrapezoidNeighborList) Add(t *Trapezoid) {
 		}
 	}
 	panic("too many neighbors")
+}
+
+func (tl *TrapezoidNeighborList) Remove(t *Trapezoid) {
+	for i, neighbor := range *tl {
+		if neighbor == t {
+			(*tl)[i] = nil
+			return
+		}
+	}
 }
 
 // Replace a trapezoid with another, or append it if the original isn't there

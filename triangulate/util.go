@@ -134,12 +134,27 @@ func (s *Segment) PointsDown() bool {
 
 // Is the line segment left of p. This assumes that P is vertically between the start and end of the segment
 func (s *Segment) IsLeftOf(p *Point) bool {
+	if s == nil {
+		return true
+	}
 	// Handle horizontal case
 	if Equal(s.Start.Y, s.End.Y) {
 		return s.Start.X < p.X && s.End.X < p.X
 	}
 	x := s.SolveForX(p.Y)
 	return x < p.X
+}
+
+func (s *Segment) IsRightOf(p *Point) bool {
+	if s == nil {
+		return true
+	}
+	// Handle horizontal case
+	if Equal(s.Start.Y, s.End.Y) {
+		return s.Start.X > p.X && s.End.X > p.X
+	}
+	x := s.SolveForX(p.Y)
+	return x > p.X
 }
 
 // Determine which direction the segment points from top to bottom
