@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/osuushi/triangulate/dbg"
 )
 
 // This implements the data structures for Seidel 1991 for trapezoidizing a non-monotone polygon
@@ -48,6 +50,19 @@ type GraphIterator struct {
 func IterateGraph(root *QueryNode) chan *QueryNode {
 	iter := NewGraphIterator(root)
 	return iter.MakeChan()
+}
+
+func IterateTrapezoids(root *QueryNode) chan *Trapezoid {
+	ch := make(chan *Trapezoid)
+	go func() {
+		for node := range IterateGraph(root) {
+			if sink, ok := node.Inner.(SinkNode); ok {
+				ch <- sink.Trapezoid
+			}
+		}
+		close(ch)
+	}()
+	return ch
 }
 
 func NewGraphIterator(root *QueryNode) *GraphIterator {
@@ -195,6 +210,9 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 }
 
 func (graph *QueryGraph) AddSegment(segment *Segment) {
+	if segment == nil {
+		panic("nil segment")
+	}
 	top := segment.Top()
 	bottom := segment.Bottom()
 
@@ -207,38 +225,32 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	node := graph.Root.FindPoint(top, topToBottomDirection)
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
-	fmt.Println("Found top trapezoid:, ", topTrapezoid.String())
-	// Check if we're not a bottom endpoint of the trapezoid segment. Note that we
-	// can't be a top endpoint, since line segments don't overlap. // TODO: Is this true? What about  |  /|
-	if topTrapezoid.Left.Bottom() != top && topTrapezoid.Right.Bottom() != top {
-		fmt.Println("Splitting top trapezoid")
+
+	// Check if the top point is already in the graph. If so, no horizontal split is needed
+	if !topTrapezoid.HasPoint(top) {
+		fmt.Println("Splitting for top")
+		fmt.Println("Top", top)
 		graph.SplitTrapezoidHorizontally(node, top)
 	}
 
 	// Do the same process for the bottom point
 	node = node.FindPoint(bottom, topToBottomDirection.Opposite())
 	var bottomTrapezoid = node.Inner.(SinkNode).Trapezoid
-	fmt.Println("Splitting bottom trapezoid:", bottomTrapezoid.String())
 
-	// This time, we need to check if we're the top endpoint of the trapezoid's segments.
-	if bottomTrapezoid.Left.Top() != bottom && bottomTrapezoid.Right.Top() != bottom {
+	// Same check
+	if !bottomTrapezoid.HasPoint(bottom) {
+		fmt.Println("Splitting for bottom")
+		fmt.Println("Bottom", bottom)
 		graph.SplitTrapezoidHorizontally(node, bottom)
 		// We now want the top sink trapezoid, since the line segment crosses that.
-		fmt.Println("Result of splitting bottom point:")
 		bottomTrapezoid = node.Inner.(YNode).Above.Inner.(SinkNode).Trapezoid
 	}
-
-	fmt.Println("Trapezoids after adding segment bottom:")
-	graph.PrintAllTrapezoids()
-	fmt.Println()
 
 	// Split the trapezoids that intersect the line segment. Note at this point
 	// that `top` sits exactly on top of the top trapezoid, and `bottom` sits
 	// exactly on the bottom of the bottom trapezoid.
 	curTrapezoid := bottomTrapezoid
-
-	fmt.Println("Bottom trapezoid", bottomTrapezoid.String())
-
+	graph.dbgDraw(50)
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
 	for { // Loop over the trapezoids
@@ -278,15 +290,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		if top == curTrapezoid.Bottom {
 			break
 		}
-	}
-
-	fmt.Println("Trapezoids on left chain:")
-	for _, trapezoid := range leftTrapezoids {
-		fmt.Println(trapezoid.String())
-	}
-	fmt.Println("Trapezoids on right chain:")
-	for _, trapezoid := range rightTrapezoids {
-		fmt.Println(trapezoid.String())
 	}
 
 	// We now have left and right chains of triangles that were split by the line
@@ -343,9 +346,11 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 
 			// Change every SinkNode to XNode, or complete the XNode depending on direction
 			for _, trapezoid := range chunk {
+				// Get the sink off the trapezoid. Note that this is a trapezoid we
+				// created by SplitBySegment, so its sink still points at the original
+				// trapezoid
 				node := trapezoid.Sink
 				var xnode XNode
-				fmt.Printf("Updating sink: %T\n", node.Inner)
 				if side == Left { // On left side, we're making a new XNode
 					xnode = XNode{
 						Key:  segment,
@@ -360,9 +365,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			}
 		}
 	}
-
-	fmt.Println("Trapezoids after merging trapezoids:")
-	graph.PrintAllTrapezoids()
 }
 
 // Split a trapezoid horizontally, and replace its sink with a y node. node.Inner must be a sink
@@ -370,6 +372,14 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	sink := node.Inner.(SinkNode)
 	top := new(Trapezoid)
 	bottom := new(Trapezoid)
+	origTop := sink.Trapezoid.Top
+	origBottom := sink.Trapezoid.Bottom
+	if origTop != nil && origTop.Below(point) {
+		panic("cannot split on point above top")
+	}
+	if origBottom != nil && origBottom.Above(point) {
+		panic("cannot split on point below bottom")
+	}
 
 	// Duplicate and adjust
 	*top = *sink.Trapezoid
@@ -399,12 +409,13 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		}
 	}
 
-	// Create the new sink nodes
+	// Create the new sink nodes, replacing the original trapezoid's sink
 	node.Inner = YNode{
 		Key:   point,
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
+	fmt.Println("Split into:", top.DbgName(), bottom.DbgName())
 }
 
 // Add a polygon to the graph. If the polygon winds clockwise, this will end up
@@ -415,7 +426,7 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 // predictable results are easier to debug. However, this raises the potential
 // for adversarial inputs. If you are using untrusted input, you should pass
 // "true" for proper randomization.
-func (graph *QueryGraph) AddPolygon(poly *Polygon, nondeterministic ...bool) {
+func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	var seed int64
 	if len(nondeterministic) > 0 && nondeterministic[0] {
 		// TODO: We should make an adapter for crypto/random, and secure random
@@ -438,7 +449,8 @@ func (graph *QueryGraph) AddPolygon(poly *Polygon, nondeterministic ...bool) {
 	})
 
 	// If this is an empty graph, initialize with the first segment
-	if graph == nil {
+	if graph.Root == nil {
+		fmt.Println("Adding segment", *segments[0], dbg.Name(segments[0]))
 		newGraph := NewQueryGraph(segments[0])
 		segments = segments[1:]
 		*graph = *newGraph
@@ -449,8 +461,12 @@ func (graph *QueryGraph) AddPolygon(poly *Polygon, nondeterministic ...bool) {
 	// TODO: Add the preprocessing step which finds new search roots for every
 	// point. That step will make the algorithm O(nlog*n)
 	for _, segment := range segments {
+		graph.dbgDraw(100)
+		fmt.Println("Adding segment", *segment, dbg.Name(segment))
 		graph.AddSegment(segment)
 	}
+	graph.dbgDraw(100)
+
 }
 
 // Fast test for point-in-polygon using the trapezoid graph. Output is not

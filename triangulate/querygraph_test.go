@@ -2,6 +2,7 @@ package triangulate
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -110,19 +111,21 @@ func TestAddSegment(t *testing.T) {
 		End:   &Point{X: 10, Y: 10},
 	}
 	g := NewQueryGraph(firstSegment)
+	g.dbgDraw(50)
 	g.AddSegment(&Segment{
 		Start: &Point{X: 8, Y: 3},
 		End:   &Point{X: 9, Y: 8},
 	})
 
-	// Add a segment below everything
-	g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
-	validateNeighborGraph(t, g)
+	// // Add a segment below everything
+	// g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
+	// validateNeighborGraph(t, g)
 
 	g.PrintAllTrapezoids()
 
 	// Add a segment that connects to the first one
 	connectedSegment := &Segment{firstSegment.End, &Point{X: 20, Y: 4}}
+	g.dbgDraw(50)
 	g.AddSegment(connectedSegment)
 	validateNeighborGraph(t, g)
 
@@ -149,6 +152,62 @@ func TestSplitTrapezoidHorizontally(t *testing.T) {
 	p2 := &Point{X: 8, Y: 2}
 	g.SplitTrapezoidHorizontally(g.Root.FindPoint(p2, DefaultDirection), p2)
 	validateNeighborGraph(t, g)
+}
+
+func TestAddPolygon_Triangle(t *testing.T) {
+	// Create a graph for a simple triangle with no horizontal edges
+	g := &QueryGraph{}
+	g.AddPolygon(Polygon{[]*Point{
+		{X: 1, Y: 0},
+		{X: -1, Y: 1},
+		{X: -1, Y: -1},
+	}})
+
+	// Validate the graph
+	validateNeighborGraph(t, g)
+	// Test points
+	g.dbgDraw(200)
+	assert.True(t, g.ContainsPoint(&Point{X: 0, Y: 0}))
+	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: -.5}))
+	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: .5}))
+	assert.False(t, g.ContainsPoint(&Point{X: .8, Y: -.5}))
+	assert.False(t, g.ContainsPoint(&Point{X: .8, Y: .5}))
+	assert.False(t, g.ContainsPoint(&Point{X: 2, Y: 1}))
+}
+
+func TestAddPolygon_Circle(t *testing.T) {
+	// Create a graph for a regular polygon with 100 sides
+	g := &QueryGraph{}
+	var points []*Point
+	var radius float64 = 3
+	n := 4
+	for i := 0; i < n; i++ {
+		angle := 2 * math.Pi * float64(i) / float64(n)
+		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
+	}
+	points[0].Y += 1 // TODO: Remove me. This is ensuring no equal y values to eliminate that variable
+	fmt.Println("Adding points:", points)
+	g.AddPolygon(Polygon{points})
+
+	fmt.Println("All trapezoids:")
+	g.PrintAllTrapezoids()
+	fmt.Println("----")
+
+	// Draw the trapezoids
+	g.dbgDraw(100)
+	// Check a bunch of points decently within the radius of the polygon
+	for r := 0.1; r < radius*.5; r += .2 {
+		for i := 0; i < 20; i++ {
+			angle := 2 * math.Pi * float64(i) / 20
+			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
+			trap := g.Root.FindPoint(p, DefaultDirection).Inner.(SinkNode).Trapezoid
+			fmt.Println("Found point in:", trap)
+			fmt.Println("Left segment:", trap.Left)
+			fmt.Println("Right segment:", trap.Right)
+			// Use require, since this is a lot of tests, and the failure output could get ridiculous
+			require.True(t, g.ContainsPoint(p), "point %v is not in the polygon", p)
+		}
+	}
 }
 
 // Validate that all neighbor relationships make sense. Every neighbor

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/logrusorgru/aurora"
 	"github.com/osuushi/triangulate/dbg"
 )
 
@@ -67,7 +68,7 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 // still point to the original trapezoid's sink. This must be fixed after
 // trapezoids with agreeing edges are merged.
 func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
-	fmt.Println("Splitting", t.String(), "by", dbg.Name(segment))
+	fmt.Println("Splitting trapezoid", t.String())
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
@@ -88,43 +89,50 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	for i := 0; i < 2; i++ {
 		neighbor := t.TrapezoidsAbove[i]
 		if neighbor != nil {
-			fmt.Println("Neighbor", dbg.Name(neighbor), "of", dbg.Name(t), "is above")
-			// Check if the top of the segment is right of the neighbor's left edge.
-			// If so, it is an above neighbor to the left split. (left edge at infinity
-			// is left of everything)
-			if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
-				left.TrapezoidsAbove.Add(neighbor)
-				neighbor.TrapezoidsBelow.ReplaceOrAdd(t, left)
+
+			if !left.IsDegenerateOnSide(Up) {
+				// Check if the top of the segment is right of the neighbor's left edge.
+				// If so, it is an above neighbor to the left split. (left edge at infinity
+				// is left of everything)
+				if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
+					left.TrapezoidsAbove.Add(neighbor)
+					neighbor.TrapezoidsBelow.ReplaceOrAdd(t, left)
+				}
 			}
 
-			// Check if the top of the segment is left of the neighbor's right edge.
-			// If so, it's a neighbor of the right split. (right edge at infinity is
-			// right of everything)
-			if neighbor.Right == nil || !neighbor.Right.IsLeftOf(top) {
-				right.TrapezoidsAbove.Add(neighbor)
-				neighbor.TrapezoidsBelow.ReplaceOrAdd(t, right)
+			if !right.IsDegenerateOnSide(Up) {
+				// Check if the top of the segment is left of the neighbor's right edge.
+				// If so, it's a neighbor of the right split. (right edge at infinity is
+				// right of everything)
+				if neighbor.Right == nil || !neighbor.Right.IsLeftOf(top) {
+					fmt.Println("Adding neighbor", neighbor.DbgName())
+					right.TrapezoidsAbove.Add(neighbor)
+					neighbor.TrapezoidsBelow.ReplaceOrAdd(t, right)
+				}
 			}
 		}
 
 		neighbor = t.TrapezoidsBelow[i]
 		if neighbor != nil {
-			fmt.Println("Neighbor", dbg.Name(neighbor), "of", dbg.Name(t), "is below")
-			// Check if the bottom of the segment is right of the neighbor's left
-			// edge. If so, it's a below neighbor to the left split.
-			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
-				left.TrapezoidsBelow.Add(neighbor)
-				neighbor.TrapezoidsAbove.ReplaceOrAdd(t, left)
+			if !left.IsDegenerateOnSide(Down) {
+				// Check if the bottom of the segment is right of the neighbor's left
+				// edge. If so, it's a below neighbor to the left split.
+				if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
+					left.TrapezoidsBelow.Add(neighbor)
+					neighbor.TrapezoidsAbove.ReplaceOrAdd(t, left)
+				}
 			}
 
-			// Check if the bottom of the segment is left of the neighbor's right edge.
-			// If so, it's a neighbor of the right split.
-			if neighbor.Right == nil || !neighbor.Right.IsLeftOf(bottom) {
-				right.TrapezoidsBelow.Add(neighbor)
-				neighbor.TrapezoidsAbove.ReplaceOrAdd(t, right)
+			if !right.IsDegenerateOnSide(Down) {
+				// Check if the bottom of the segment is left of the neighbor's right edge.
+				// If so, it's a neighbor of the right split.
+				if neighbor.Right == nil || !neighbor.Right.IsLeftOf(bottom) {
+					right.TrapezoidsBelow.Add(neighbor)
+					neighbor.TrapezoidsAbove.ReplaceOrAdd(t, right)
+				}
 			}
 		}
 	}
-	fmt.Println("--")
 	return left, right
 }
 
@@ -132,9 +140,41 @@ func (t *Trapezoid) CanMergeWith(other *Trapezoid) bool {
 	return t.Left == other.Left && t.Right == other.Right
 }
 
+// Check if the point is any of the (up to) six points involved with the
+// trapezoid. If it is, then it's already a line segment in the graph.
+func (t *Trapezoid) HasPoint(p *Point) bool {
+	if t.Top == p || t.Bottom == p {
+		return true
+	}
+	if t.Left != nil {
+		if t.Left.Start == p || t.Left.End == p {
+			return true
+		}
+	}
+	if t.Right != nil {
+		if t.Right.Start == p || t.Right.End == p {
+			return true
+		}
+	}
+	return false
+}
+
+// Check if the trapezoid has a degenerate side (is it a triangle). If either
+// side is nil, then it's never degenerate. Otherwise, this holds when the
+// corresponding segment endpoints are equal.
+func (t *Trapezoid) IsDegenerateOnSide(side YDirection) bool {
+	switch side {
+	case Up:
+		return t.Left != nil && t.Left.Top() == t.Right.Top()
+	case Down:
+		return t.Left != nil && t.Left.Bottom() == t.Right.Bottom()
+	}
+	panic("invalid side")
+}
+
 func (t *Trapezoid) String() string {
 	return fmt.Sprintf("Trapezoid %s { ⬆ %s, ⬇ %s } <L: %s, R: %s, T: %s, B: %s>",
-		dbg.Name(t),
+		t.DbgName(),
 		t.TrapezoidsAbove.String(),
 		t.TrapezoidsBelow.String(),
 		dbg.Name(t.Left),
@@ -142,6 +182,19 @@ func (t *Trapezoid) String() string {
 		dbg.Name(t.Top),
 		dbg.Name(t.Bottom),
 	)
+}
+
+func (t *Trapezoid) DbgName() string {
+	// If the trapezoid is infinite, color it orange
+	name := dbg.Name(t)
+	if t.Top == nil || t.Bottom == nil || t.Left == nil || t.Right == nil { // Infinite in some direction
+		name = aurora.Cyan(name).String()
+	} else if Equal(t.Top.Y, t.Bottom.Y) { // Zero height
+		name = aurora.Red(name).String()
+	} else {
+		name = aurora.Green(name).String()
+	}
+	return name
 }
 
 func (tl *TrapezoidNeighborList) String() string {
@@ -170,7 +223,6 @@ func (tl *TrapezoidNeighborList) Add(t *Trapezoid) {
 
 // Replace a trapezoid with another, or append it if the original isn't there
 func (tl *TrapezoidNeighborList) ReplaceOrAdd(orig *Trapezoid, replacement *Trapezoid) {
-	fmt.Println("Want to replace", dbg.Name(orig), "with", dbg.Name(replacement), "in", tl.String())
 	for i, neighbor := range *tl {
 		if neighbor == orig {
 			(*tl)[i] = replacement

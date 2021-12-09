@@ -1,7 +1,5 @@
 package triangulate
 
-import "fmt"
-
 // Node for the query structure. The query structure allows us to navigate the
 // trapezoid set efficiently, and can be built in O(nlog(n)) time. (TODO: There
 // is a preprocessing loop you can use to get this to O(nlog*n) time. Implement
@@ -44,7 +42,6 @@ type QueryNode struct {
 }
 
 func (n *QueryNode) FindPoint(p *Point, dir Direction) *QueryNode {
-	fmt.Printf("Finding point: %T\n", n.Inner)
 	// If we found a sink node, we're done
 	if _, ok := n.Inner.(SinkNode); ok {
 		return n
