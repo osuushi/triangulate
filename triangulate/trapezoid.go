@@ -43,16 +43,14 @@ func (t *Trapezoid) IsInside() bool {
 	return t.Left != nil && t.Right != nil && t.Left.PointsDown()
 }
 
-// Check if a segment crosses the bottom edge of the trapezoid. The segment must
-// not be horizontal. Note that horizontal segments should never need to ask
-// this question, since they never get past the first iteration when searching
-// for trapezoids to split vertically.
-//
-// Furthermore, this assumes that that the segment does pass through the Y value
-// of the bottom of the trapezoid. Again, this is always true during the scan.
+// Check if a segment crosses the bottom edge of the trapezoid. If the segment
+// is horizontal, this always returns false.
 func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	if segment.IsHorizontal() {
-		panic("horizontal segments should never be tested for bottom intersection")
+		// The only way a horizontal segment could intersect the bottom of a
+		// trapezoid would be if segments crossed. This is assumed never to be the
+		// case.
+		return false
 	}
 	if t.Bottom == nil { // Bottom is at infinity, nothing can intersect it
 		return false
