@@ -217,6 +217,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	if segment == nil {
 		panic("nil segment")
 	}
+
 	top := segment.Top()
 	bottom := segment.Bottom()
 
@@ -249,7 +250,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	// that `top` sits exactly on top of the top trapezoid, and `bottom` sits
 	// exactly on the bottom of the bottom trapezoid.
 	curTrapezoid := bottomTrapezoid
-	graph.dbgDraw(100)
+
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
 
@@ -428,6 +429,9 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 // "true" for proper randomization.
 func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	var seed int64
+	dbgDraw := func() {
+		graph.dbgDraw(100)
+	}
 	if len(nondeterministic) > 0 && nondeterministic[0] {
 		// TODO: We should make an adapter for crypto/random, and secure random
 		// numbers when nondeterministic mode is selected. Low priority, as it would
@@ -461,12 +465,11 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	// TODO: Add the preprocessing step which finds new search roots for every
 	// point. That step will make the algorithm O(nlog*n)
 	for _, segment := range segments {
-		graph.dbgDraw(100)
+		dbgDraw()
 		fmt.Println("Adding segment", *segment, dbg.Name(segment))
 		graph.AddSegment(segment)
 	}
-	graph.dbgDraw(100)
-
+	dbgDraw()
 }
 
 // Fast test for point-in-polygon using the trapezoid graph. Output is not

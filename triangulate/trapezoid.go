@@ -93,7 +93,12 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	// the trapezoid we split.
 
 	var topX, bottomX float64
+
 	if segment.IsHorizontal() {
+		// If the segment is horizontal, then it has infinitesimally positive slope,
+		// which means that we can only go by top or bottom according to the
+		// lexicographic ordering. There is no meaninful interpolation between these
+		// x values depending on the y value.
 		topX = segment.Top().X
 		bottomX = segment.Bottom().X
 	} else {

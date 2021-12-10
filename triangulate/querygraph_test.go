@@ -165,7 +165,7 @@ func TestAddPolygon_Triangle(t *testing.T) {
 	// Validate the graph
 	validateNeighborGraph(t, g)
 	// Test points
-	validateGraphViaWindingRule(t, g, poly, -2, -2, 2, 2, 0.1)
+	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -2, -2, 2, 2, 0.1)
 }
 
 func TestAddPolygon_Circle(t *testing.T) {
@@ -188,7 +188,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 	fmt.Println("----")
 
 	// Scan over the circle sampling points and comparing to the winding rule
-	validateGraphViaWindingRule(t, g, poly, -radius-1, -radius-1, radius+1, radius+1, 0.1)
+	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -radius-1, -radius-1, radius+1, radius+1, 0.1)
 }
 
 func TestAddPolygon_Star(t *testing.T) {
@@ -209,7 +209,7 @@ func TestAddPolygon_Star(t *testing.T) {
 	poly := Polygon{points}
 	g.AddPolygon(poly)
 	validateNeighborGraph(t, g)
-	validateGraphViaWindingRule(t, g, poly, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1)
+	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1)
 }
 
 func TestAddPolygon_SquareWithHole(t *testing.T) {
@@ -232,7 +232,8 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 	holePoly := Polygon{holePoints}
 	g.AddPolygon(outerPoly)
 	g.AddPolygon(holePoly)
-	g.dbgDraw(100)
+	validateNeighborGraph(t, g)
+	validateGraphViaWindingRule(t, g, []Polygon{outerPoly}, []Polygon{holePoly}, -6, -6, 6, 6, 0.3)
 }
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	// Find all the trapezoids in the graph
@@ -266,16 +267,32 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	}
 }
 
-func validateGraphViaWindingRule(t *testing.T, graph *QueryGraph, poly Polygon, minX, minY, maxX, maxY, step float64) {
+func validateGraphViaWindingRule(t *testing.T, graph *QueryGraph, filledPolies []Polygon, holePolies []Polygon, minX, minY, maxX, maxY, step float64) {
 	for y := minY; y <= maxY; y += step {
 		for x := minX; x <= maxX; x += step {
 			p := &Point{X: x, Y: y}
 			actual := graph.ContainsPoint(p)
-			if poly.ContainsPointByWinding(p) {
+			if poliesContainPoint(filledPolies, holePolies, p) {
 				assert.True(t, actual, "point %v should be in the polygon", p)
 			} else {
 				assert.False(t, actual, "point %v should not be in the polygon", p)
 			}
 		}
 	}
+}
+
+func poliesContainPoint(filledPolies []Polygon, holePolies []Polygon, p *Point) bool {
+	// First check if any hole poly contains the point (this takes precedent)
+	for _, poly := range holePolies {
+		if poly.ContainsPointByWinding(p) {
+			return false
+		}
+	}
+	// Then check if any filled poly contains the point
+	for _, poly := range filledPolies {
+		if poly.ContainsPointByWinding(p) {
+			return true
+		}
+	}
+	return false
 }

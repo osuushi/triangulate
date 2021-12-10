@@ -14,6 +14,9 @@ func (poly Polygon) ContainsPointByWinding(p *Point) bool {
 		nextVertex := poly.Points[CircularIndex(i+1, len(poly.Points))]
 
 		segment := Segment{vertex, nextVertex}
+		if segment.IsHorizontal() {
+			continue
+		}
 		x := segment.SolveForX(p.Y) // crossing point if applicable
 		if p.X < x {                // Left side of downward crossing
 			if vertex.Below(p) && nextVertex.Above(p) { // Upward crossing
