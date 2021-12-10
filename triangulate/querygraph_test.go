@@ -235,6 +235,42 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 	validateNeighborGraph(t, g)
 	validateGraphViaWindingRule(t, g, []Polygon{outerPoly}, []Polygon{holePoly}, -6, -6, 6, 6, 0.3)
 }
+
+func TestAddPolygon_StarOutline(t *testing.T) {
+	filledPoints := []*Point{}
+	holePoints := []*Point{}
+	const filledOuterRadius = 10
+	const filledInnerRadius = 5
+	const holeOuterRadius = filledOuterRadius - 2
+	const holeInnerRadius = filledInnerRadius - 2
+	for i := 0; i < 10; i++ {
+		var (
+			filledRadius float64
+			holeRadius   float64
+		)
+		if i%2 == 0 {
+			filledRadius = filledOuterRadius
+			holeRadius = holeOuterRadius
+		} else {
+			filledRadius = filledInnerRadius
+			holeRadius = holeInnerRadius
+		}
+		angle := 2 * math.Pi * float64(i) / 10
+		filledPoints = append(filledPoints, &Point{X: filledRadius * math.Cos(angle), Y: filledRadius * math.Sin(angle)})
+		holePoints = append(holePoints, &Point{X: holeRadius * math.Cos(angle), Y: holeRadius * math.Sin(angle)})
+	}
+
+	filledPoly := Polygon{filledPoints}
+	holePoly := Polygon{holePoints}.Reverse()
+
+	g := &QueryGraph{}
+	g.AddPolygon(filledPoly)
+	g.AddPolygon(holePoly)
+
+	validateNeighborGraph(t, g)
+	validateGraphViaWindingRule(t, g, []Polygon{filledPoly}, []Polygon{holePoly}, -filledOuterRadius-1, -filledOuterRadius-1, filledOuterRadius+1, filledOuterRadius+1, 0.1)
+}
+
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	// Find all the trapezoids in the graph
 	var trapezoids []*Trapezoid

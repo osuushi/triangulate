@@ -59,9 +59,6 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	// Find the x value for the segment at the bottom of the trapezoid
 	x := segment.SolveForX(t.Bottom.Y)
 	point := &Point{x, t.Bottom.Y}
-	fmt.Println("intersection point:", *point)
-	fmt.Println("Left segment", t.Left)
-	fmt.Println("Right segment", t.Right)
 
 	return t.Left.IsLeftOf(point) && t.Right.IsRightOf(point)
 }
@@ -72,7 +69,6 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 // still point to the original trapezoid's sink. This must be fixed after
 // trapezoids with agreeing edges are merged.
 func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
-	fmt.Println("Splitting trapezoid on segment", t.String())
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
@@ -129,8 +125,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				left.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(left)
 			}
-		} else {
-			fmt.Println("top side of", left.String(), "is degenerate, no above neighbors added")
 		}
 
 		if !right.IsDegenerateOnSide(Up) {
@@ -141,8 +135,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				right.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(right)
 			}
-		} else {
-			fmt.Println("top side of", right.String(), "is degenerate, no above neighbors added")
 		}
 
 	}
@@ -159,8 +151,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				left.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(left)
 			}
-		} else {
-			fmt.Println("bottom side of", left.String(), "is degenerate, no below neighbors added")
 		}
 
 		if !right.IsDegenerateOnSide(Down) {
@@ -170,12 +160,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				right.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(right)
 			}
-		} else {
-			fmt.Println("bottom side of", right.String(), "is degenerate, no below neighbors added")
 		}
 	}
-	fmt.Println("Left:", left.String())
-	fmt.Println("Right:", right.String())
 	return left, right
 }
 

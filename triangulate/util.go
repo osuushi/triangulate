@@ -83,14 +83,6 @@ func (s *PointStack) Peek() *Point {
 	return (*s)[len(*s)-1]
 }
 
-func (poly Polygon) Reverse() Polygon {
-	newPoly := Polygon{}
-	for i := len(poly.Points) - 1; i >= 0; i-- {
-		newPoly.Points = append(newPoly.Points, poly.Points[i])
-	}
-	return newPoly
-}
-
 func (s *PointStack) Empty() bool {
 	return len(*s) == 0
 }

@@ -28,3 +28,11 @@ func (poly Polygon) ContainsPointByWinding(p *Point) bool {
 	}
 	return winding != 0
 }
+
+func (poly Polygon) Reverse() Polygon {
+	newPoly := Polygon{}
+	for i := len(poly.Points) - 1; i >= 0; i-- {
+		newPoly.Points = append(newPoly.Points, poly.Points[i])
+	}
+	return newPoly
+}

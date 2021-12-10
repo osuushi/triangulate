@@ -1,12 +1,8 @@
 package triangulate
 
 import (
-	"fmt"
 	"math/rand"
-	"strings"
 	"time"
-
-	"github.com/osuushi/triangulate/dbg"
 )
 
 // This implements the data structures for Seidel 1991 for trapezoidizing a non-monotone polygon
@@ -205,8 +201,6 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 			parts = append(parts, node.Trapezoid.String())
 		}
 	}
-
-	fmt.Println(strings.Join(parts, "\n"))
 }
 
 func (graph *QueryGraph) FindPoint(dp DirectionalPoint) *QueryNode {
@@ -228,8 +222,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 
 	// Check if the top point is already in the graph. If so, no horizontal split is needed
 	if !topTrapezoid.HasPoint(top) {
-		fmt.Println("Splitting for top")
-		fmt.Println("Top", top)
 		graph.SplitTrapezoidHorizontally(node, top)
 	}
 
@@ -239,8 +231,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 
 	// Same check
 	if !bottomTrapezoid.HasPoint(bottom) {
-		fmt.Println("Splitting for bottom")
-		fmt.Println("Bottom", bottom)
 		graph.SplitTrapezoidHorizontally(node, bottom)
 		// We now want the top sink trapezoid, since the line segment crosses that.
 		bottomTrapezoid = node.Inner.(YNode).Above.Inner.(SinkNode).Trapezoid
@@ -272,14 +262,12 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 			}
 		}
 		if curTrapezoid == nil {
-			fmt.Println("No more trapezoids to split")
 			break
 		}
 
 		// We'll stop once we get to the trapezoid that our segment top is the
 		// bottom of. That's the one we created by splitting horizontally.
 		if top == curTrapezoid.Bottom {
-			fmt.Println("Found top trapezoid", curTrapezoid)
 			break
 		}
 	}
@@ -369,7 +357,6 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 // Split a trapezoid horizontally, and replace its sink with a y node. node.Inner must be a sink
 func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Point) {
 	sink := node.Inner.(SinkNode)
-	fmt.Printf("Splitting trapezoid %s horizontally at %v\n", sink.Trapezoid.String(), point)
 	top := new(Trapezoid)
 	bottom := new(Trapezoid)
 	origTop := sink.Trapezoid.Top
@@ -415,8 +402,6 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
-	fmt.Println("Top:", top.String())
-	fmt.Println("Bottom:", bottom.String())
 }
 
 // Add a polygon to the graph. If the polygon winds clockwise, this will end up
@@ -430,7 +415,7 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	var seed int64
 	dbgDraw := func() {
-		graph.dbgDraw(100)
+		// graph.dbgDraw(100)
 	}
 	if len(nondeterministic) > 0 && nondeterministic[0] {
 		// TODO: We should make an adapter for crypto/random, and secure random
@@ -454,7 +439,6 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 
 	// If this is an empty graph, initialize with the first segment
 	if graph.Root == nil {
-		fmt.Println("Adding segment", *segments[0], dbg.Name(segments[0]))
 		newGraph := NewQueryGraph(segments[0])
 		segments = segments[1:]
 		*graph = *newGraph
@@ -466,7 +450,6 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	// point. That step will make the algorithm O(nlog*n)
 	for _, segment := range segments {
 		dbgDraw()
-		fmt.Println("Adding segment", *segment, dbg.Name(segment))
 		graph.AddSegment(segment)
 	}
 	dbgDraw()
