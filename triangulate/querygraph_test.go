@@ -180,17 +180,10 @@ func TestAddPolygon_Circle(t *testing.T) {
 	g := &QueryGraph{}
 	var points []*Point
 	var radius float64 = 3
-	n := 10
-	adjusted := false
+	n := 20
 	for i := 0; i < n; i++ {
 		angle := 2 * math.Pi * float64(i) / float64(n)
 		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
-		// Adjustment to avoid equal y values
-		if !adjusted && math.Abs(points[i].Y+2.85) < .01 {
-			fmt.Println("Adjusting", points[i])
-			adjusted = true
-			points[i].Y = -4 // avoid horizontal
-		}
 	}
 
 	fmt.Println("Adding points:", points)
@@ -217,10 +210,25 @@ func TestAddPolygon_Circle(t *testing.T) {
 	}
 }
 
-// Validate that all neighbor relationships make sense. Every neighbor
-// relationship should be reflexive, and the set of trapezoids reachable by
-// traversing the neighbor graph should be the same as the set of trapezoids in
-// the graph.
+func TestAddPolygon_Star(t *testing.T) {
+	var points []*Point
+	const outerRadius = 5
+	const innerRadius = 2
+	for i := 0; i < 10; i++ {
+		var radius float64
+		if i%2 == 0 {
+			radius = outerRadius
+		} else {
+			radius = innerRadius
+		}
+		angle := 2 * math.Pi * float64(i) / 10
+		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
+	}
+	g := &QueryGraph{}
+	g.AddPolygon(Polygon{points})
+	g.dbgDraw(100)
+}
+
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	// Find all the trapezoids in the graph
 	var trapezoids []*Trapezoid
