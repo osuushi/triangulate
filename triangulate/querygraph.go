@@ -210,7 +210,6 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 }
 
 func (graph *QueryGraph) FindPoint(dp DirectionalPoint) *QueryNode {
-	fmt.Println("Finding point", dp.Point)
 	return graph.Root.FindPoint(dp)
 }
 

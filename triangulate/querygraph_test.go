@@ -183,40 +183,24 @@ func TestAddPolygon_Circle(t *testing.T) {
 		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
 	}
 
-	fmt.Println("Adding points:", points)
-	g.AddPolygon(Polygon{points})
+	poly := Polygon{points}
+
+	g.AddPolygon(poly)
 
 	fmt.Println("All trapezoids:")
 	g.PrintAllTrapezoids()
 	fmt.Println("----")
 
-	// Draw the trapezoids
-	// g.dbgDraw(100)
-	// Check a bunch of points decently within the radius of the polygon
-	for r := 0.1; r < radius*.5; r += .2 {
-		for i := 0; i < 20; i++ {
-			angle := 2 * math.Pi * float64(i) / 20
-			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
-			trap := g.FindPoint(p.PointingRight()).Inner.(SinkNode).Trapezoid
-			fmt.Println("Found point in:", trap)
-			fmt.Println("Left segment:", trap.Left)
-			fmt.Println("Right segment:", trap.Right)
-			// Use require, since this is a lot of tests, and the failure output could get ridiculous
-			require.True(t, g.ContainsPoint(p), "point %v should be in the polygon", p)
-		}
-	}
-
-	// Check a bunch of points decently outside the radius of the polygon
-	for r := radius * 1.1; r < radius*2; r += .2 {
-		for i := 0; i < 20; i++ {
-			angle := 2 * math.Pi * float64(i) / 20
-			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
-			trap := g.FindPoint(p.PointingRight()).Inner.(SinkNode).Trapezoid
-			fmt.Println("Found point in:", trap)
-			fmt.Println("Left segment:", trap.Left)
-			fmt.Println("Right segment:", trap.Right)
-			// Use require, since this is a lot of tests, and the failure output could get ridiculous
-			require.False(t, g.ContainsPoint(p), "point %v should not be in the polygon", p)
+	// Scan over the circle sampling points and comparing to the winding rule
+	for y := -radius - 1; y <= radius+1; y += 0.1 {
+		for x := -radius - 1; x <= radius+1; x += 0.1 {
+			p := &Point{X: x, Y: y}
+			actual := g.ContainsPoint(p)
+			if poly.ContainsPointByWinding(p) {
+				assert.True(t, actual, "point %v should be in the polygon", p)
+			} else {
+				assert.False(t, actual, "point %v should not be in the polygon", p)
+			}
 		}
 	}
 }
