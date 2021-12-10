@@ -250,7 +250,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	// that `top` sits exactly on top of the top trapezoid, and `bottom` sits
 	// exactly on the bottom of the bottom trapezoid.
 	curTrapezoid := bottomTrapezoid
-	graph.dbgDraw(50)
+	// graph.dbgDraw(50)
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
 
@@ -462,11 +462,11 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	// TODO: Add the preprocessing step which finds new search roots for every
 	// point. That step will make the algorithm O(nlog*n)
 	for _, segment := range segments {
-		graph.dbgDraw(100)
+		// graph.dbgDraw(100)
 		fmt.Println("Adding segment", *segment, dbg.Name(segment))
 		graph.AddSegment(segment)
 	}
-	graph.dbgDraw(100)
+	// graph.dbgDraw(100)
 
 }
 

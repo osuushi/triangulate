@@ -111,7 +111,6 @@ func TestAddSegment(t *testing.T) {
 		End:   &Point{X: 10, Y: 10},
 	}
 	g := NewQueryGraph(firstSegment)
-	g.dbgDraw(50)
 	g.AddSegment(&Segment{
 		Start: &Point{X: 8, Y: 3},
 		End:   &Point{X: 9, Y: 8},
@@ -125,7 +124,6 @@ func TestAddSegment(t *testing.T) {
 
 	// Add a segment that connects to the first one
 	connectedSegment := &Segment{firstSegment.End, &Point{X: 20, Y: 4}}
-	g.dbgDraw(50)
 	g.AddSegment(connectedSegment)
 	validateNeighborGraph(t, g)
 
@@ -166,7 +164,6 @@ func TestAddPolygon_Triangle(t *testing.T) {
 	// Validate the graph
 	validateNeighborGraph(t, g)
 	// Test points
-	g.dbgDraw(200)
 	assert.True(t, g.ContainsPoint(&Point{X: 0, Y: 0}))
 	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: -.5}))
 	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: .5}))
@@ -194,7 +191,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 	fmt.Println("----")
 
 	// Draw the trapezoids
-	g.dbgDraw(100)
+	// g.dbgDraw(100)
 	// Check a bunch of points decently within the radius of the polygon
 	for r := 0.1; r < radius*.5; r += .2 {
 		for i := 0; i < 20; i++ {
@@ -205,7 +202,21 @@ func TestAddPolygon_Circle(t *testing.T) {
 			fmt.Println("Left segment:", trap.Left)
 			fmt.Println("Right segment:", trap.Right)
 			// Use require, since this is a lot of tests, and the failure output could get ridiculous
-			require.True(t, g.ContainsPoint(p), "point %v is not in the polygon", p)
+			require.True(t, g.ContainsPoint(p), "point %v should be in the polygon", p)
+		}
+	}
+
+	// Check a bunch of points decently outside the radius of the polygon
+	for r := radius * 1.1; r < radius*2; r += .2 {
+		for i := 0; i < 20; i++ {
+			angle := 2 * math.Pi * float64(i) / 20
+			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
+			trap := g.FindPoint(p.PointingRight()).Inner.(SinkNode).Trapezoid
+			fmt.Println("Found point in:", trap)
+			fmt.Println("Left segment:", trap.Left)
+			fmt.Println("Right segment:", trap.Right)
+			// Use require, since this is a lot of tests, and the failure output could get ridiculous
+			require.False(t, g.ContainsPoint(p), "point %v should not be in the polygon", p)
 		}
 	}
 }
@@ -226,7 +237,6 @@ func TestAddPolygon_Star(t *testing.T) {
 	}
 	g := &QueryGraph{}
 	g.AddPolygon(Polygon{points})
-	g.dbgDraw(100)
 }
 
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
