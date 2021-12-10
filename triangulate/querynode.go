@@ -20,7 +20,7 @@ type QueryNodeInner interface {
 	// Traverse the graph to find the sink whose trapezoid contains the point. The
 	// direction argument is required to disambiguate when the point is an XNode
 	// segment's endpoint.
-	FindPoint(*Point, Direction) *QueryNode
+	FindPoint(DirectionalPoint) *QueryNode
 
 	// Child nodes is useful for iterating over a graph
 	ChildNodes() []*QueryNode
@@ -41,14 +41,14 @@ type QueryNode struct {
 	Inner QueryNodeInner
 }
 
-func (n *QueryNode) FindPoint(p *Point, dir Direction) *QueryNode {
+func (n *QueryNode) FindPoint(dp DirectionalPoint) *QueryNode {
 	// If we found a sink node, we're done
 	if _, ok := n.Inner.(SinkNode); ok {
 		return n
 	}
 
 	// For other node types, ask the inner node to search its children
-	return n.Inner.FindPoint(p, dir)
+	return n.Inner.FindPoint(dp)
 }
 
 func (n *QueryNode) ChildNodes() []*QueryNode {
@@ -63,7 +63,7 @@ type SinkNode struct {
 	InitialParent *QueryNode
 }
 
-func (node SinkNode) FindPoint(point *Point, _ Direction) *QueryNode {
+func (node SinkNode) FindPoint(_ DirectionalPoint) *QueryNode {
 	// If we're at a sink, we can't traverse any further.
 	panic("Should not try to find point from a sink")
 }
@@ -78,24 +78,37 @@ type YNode struct {
 	Key          *Point // Point so that we can do the lexicographic thing
 }
 
-func (node YNode) FindPoint(point *Point, dir Direction) *QueryNode {
+func (node YNode) FindPoint(dp DirectionalPoint) *QueryNode {
+	var direction YDirection
 	// For equal points, we must use the direction given
 	// Note that this only applies when directly comparing vertices, so pointer
 	// comparison is fine.
-	if node.Key == point {
-		switch dir.Y {
-		case Up:
-			return node.Above.FindPoint(point, dir)
-		case Down:
-			return node.Below.FindPoint(point, dir)
+	if node.Key == dp.Point {
+		// Find the direction from the direction vector
+		if Equal(dp.Direction.Y, 0) { // If horizontal, we need the lexicographic tiebreak
+			if dp.Direction.X > 0 { // Slopes up from left to right
+				direction = Up
+			} else { // Slopes down from right to left
+				direction = Down
+			}
+		} else if dp.Direction.Y > 0 {
+			direction = Up
+		} else {
+			direction = Down
 		}
+	} else if dp.Point.Below(node.Key) {
+		direction = Down
+	} else {
+		direction = Up
 	}
 
-	if point.Below(node.Key) {
-		return node.Below.FindPoint(point, dir)
-	} else {
-		return node.Above.FindPoint(point, dir)
+	switch direction {
+	case Up:
+		return node.Above.FindPoint(dp)
+	case Down:
+		return node.Below.FindPoint(dp)
 	}
+	panic("no direction found") // should be unreachable
 }
 
 func (node YNode) ChildNodes() []*QueryNode {
@@ -108,22 +121,39 @@ type XNode struct {
 	Key         *Segment
 }
 
-func (node XNode) FindPoint(point *Point, dir Direction) *QueryNode {
-	// First check if it's an endpoint. If so, we use dir to determine which way to go.
-	if node.Key.Start == point || node.Key.End == point {
-		switch dir.X {
-		case Left:
-			return node.Left.FindPoint(point, dir)
-		case Right:
-			return node.Right.FindPoint(point, dir)
+func (node XNode) FindPoint(dp DirectionalPoint) *QueryNode {
+	var direction XDirection
+
+	// First check if it's an endpoint. If so, we use the direction vector to
+	// decide what happens. There's a subtle point here: We are not asking if the
+	// direction vector slopes left or right, but if it slopes _more_ left or
+	// right than the node's key.
+	if node.Key.Start == dp.Point || node.Key.End == dp.Point {
+		// Since IsLeftOf doesn't actually care about the bounds of the segment (it
+		// only tests the line through them), we can just add the direction vector
+		// to the point and check if it's left of the node's segment key.
+		nudgedPoint := &Point{
+			X: dp.Point.X + dp.Direction.X,
+			Y: dp.Point.Y + dp.Direction.Y,
 		}
+		if node.Key.IsLeftOf(nudgedPoint) {
+			direction = Right
+		} else { // Note that there is no middle here; that would imply overlapping line segments.
+			direction = Left
+		}
+	} else if node.Key.IsLeftOf(dp.Point) {
+		direction = Right
+	} else {
+		direction = Left
 	}
 
-	if node.Key.IsLeftOf(point) {
-		return node.Right.FindPoint(point, dir)
-	} else {
-		return node.Left.FindPoint(point, dir)
+	switch direction {
+	case Left:
+		return node.Left.FindPoint(dp)
+	case Right:
+		return node.Right.FindPoint(dp)
 	}
+	panic("no direction found") // should be unreachable
 }
 
 func (node XNode) ChildNodes() []*QueryNode {

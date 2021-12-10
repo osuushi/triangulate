@@ -209,9 +209,9 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 	fmt.Println(strings.Join(parts, "\n"))
 }
 
-func (graph *QueryGraph) FindPoint(p *Point, dir Direction) *QueryNode {
-	fmt.Println("Finding point", p)
-	return graph.Root.FindPoint(p, dir)
+func (graph *QueryGraph) FindPoint(dp DirectionalPoint) *QueryNode {
+	fmt.Println("Finding point", dp.Point)
+	return graph.Root.FindPoint(dp)
 }
 
 func (graph *QueryGraph) AddSegment(segment *Segment) {
@@ -221,13 +221,8 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	top := segment.Top()
 	bottom := segment.Bottom()
 
-	topToBottomDirection := Direction{
-		X: segment.XDirection(),
-		Y: Down,
-	}
-
 	// Find the node that contains the top point, coming from the bottom
-	node := graph.FindPoint(top, topToBottomDirection)
+	node := graph.FindPoint(top.PointingAt(bottom))
 
 	var topTrapezoid = node.Inner.(SinkNode).Trapezoid
 
@@ -239,7 +234,7 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	}
 
 	// Do the same process for the bottom point
-	node = graph.FindPoint(bottom, topToBottomDirection.Opposite())
+	node = graph.FindPoint(bottom.PointingAt(top))
 	var bottomTrapezoid = node.Inner.(SinkNode).Trapezoid
 
 	// Same check
@@ -466,7 +461,7 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 // defined for points exactly on the edge of the graph.
 func (g *QueryGraph) ContainsPoint(point *Point) bool {
 	// Find the trapezoid containing the point
-	containingTrapezoid := g.FindPoint(point, DefaultDirection)
+	containingTrapezoid := g.FindPoint(point.PointingRight())
 	if containingTrapezoid == nil {
 		return false
 	}

@@ -28,6 +28,35 @@ func (p *Point) Above(otherPoint *Point) bool {
 	return !p.Below(otherPoint)
 }
 
+// Create a directional point pointing at another point
+func (p *Point) PointingAt(other *Point) DirectionalPoint {
+	dir := Vector{
+		X: other.X - p.X,
+		Y: other.Y - p.Y,
+	}.Normalize()
+
+	return DirectionalPoint{
+		Point:     p,
+		Direction: dir,
+	}
+}
+
+// Convenience function setting the convention for finding points when you don't care about the direction.
+func (p *Point) PointingRight() DirectionalPoint {
+	return DirectionalPoint{
+		Point:     p,
+		Direction: Vector{X: 1, Y: 0},
+	}
+}
+
+// Another convenience function, same concept as PointingRight
+func DefaultDirectionalPoint(x, y float64) DirectionalPoint {
+	return DirectionalPoint{
+		Point:     &Point{X: x, Y: y},
+		Direction: Vector{X: 1, Y: 0},
+	}
+}
+
 // Often we want to treat an array as a circular buffer. This gives the modular
 // index given length n, but unlike the raw modulo operator, it only gives positive values
 func CircularIndex(i, n int) int {
@@ -231,4 +260,15 @@ func (s *Segment) SolveForX(y float64) float64 {
 	m := (s.End.Y - s.Start.Y) / (s.End.X - s.Start.X)
 	b := s.Start.Y - m*s.Start.X
 	return (y - b) / m
+}
+
+func (v Vector) Normalize() Vector {
+	return Vector{
+		X: v.X / v.Length(),
+		Y: v.Y / v.Length(),
+	}
+}
+
+func (v Vector) Length() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }

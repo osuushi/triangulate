@@ -83,7 +83,7 @@ func TestNewQueryGraph(t *testing.T) {
 		right:  "right",
 	}
 	assertTrapezoidForPoint := func(t *testing.T, trapezoid *Trapezoid, x, y float64) {
-		sink := graph.FindPoint(&Point{x, y}, DefaultDirection)
+		sink := graph.FindPoint(DefaultDirectionalPoint(x, y))
 		require.NotNil(t, sink)
 		require.IsType(t, SinkNode{}, sink.Inner)
 		assert.Equal(t, trapNames[trapezoid], trapNames[sink.Inner.(SinkNode).Trapezoid])
@@ -130,7 +130,7 @@ func TestAddSegment(t *testing.T) {
 	validateNeighborGraph(t, g)
 
 	// Find a point that lies between the two connected segments
-	sink := g.FindPoint(&Point{X: 10, Y: 9}, DefaultDirection)
+	sink := g.FindPoint(DefaultDirectionalPoint(10, 9))
 	require.NotNil(t, sink)
 	require.IsType(t, SinkNode{}, sink.Inner)
 	trapezoid := sink.Inner.(SinkNode).Trapezoid
@@ -146,11 +146,11 @@ func TestSplitTrapezoidHorizontally(t *testing.T) {
 	})
 	validateNeighborGraph(t, g)
 	p := &Point{X: 7, Y: 5}
-	g.SplitTrapezoidHorizontally(g.FindPoint(p, DefaultDirection), p)
+	g.SplitTrapezoidHorizontally(g.FindPoint(p.PointingRight()), p)
 	validateNeighborGraph(t, g)
 
 	p2 := &Point{X: 8, Y: 2}
-	g.SplitTrapezoidHorizontally(g.FindPoint(p2, DefaultDirection), p2)
+	g.SplitTrapezoidHorizontally(g.FindPoint(p2.PointingRight()), p2)
 	validateNeighborGraph(t, g)
 }
 
@@ -200,7 +200,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			angle := 2 * math.Pi * float64(i) / 20
 			p := &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)}
-			trap := g.FindPoint(p, DefaultDirection).Inner.(SinkNode).Trapezoid
+			trap := g.FindPoint(p.PointingRight()).Inner.(SinkNode).Trapezoid
 			fmt.Println("Found point in:", trap)
 			fmt.Println("Left segment:", trap.Left)
 			fmt.Println("Right segment:", trap.Right)
