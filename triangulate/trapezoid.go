@@ -59,6 +59,9 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	// Find the x value for the segment at the bottom of the trapezoid
 	x := segment.SolveForX(t.Bottom.Y)
 	point := &Point{x, t.Bottom.Y}
+	fmt.Println("intersection point:", *point)
+	fmt.Println("Left segment", t.Left)
+	fmt.Println("Right segment", t.Right)
 
 	return t.Left.IsLeftOf(point) && t.Right.IsRightOf(point)
 }
@@ -73,8 +76,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
-	fmt.Println("Left:", left.DbgName())
-	fmt.Println("Right:", right.DbgName())
 	*left = *t
 	*right = *t
 	left.Right = segment
@@ -87,8 +88,21 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	right.TrapezoidsBelow = TrapezoidNeighborList{}
 
 	// Adjust neighbors
-	top := segment.Top()
-	bottom := segment.Bottom()
+
+	// First we need to know where the segment intersects the top and bottom of
+	// the trapezoid we split.
+
+	topX := segment.SolveForX(t.Top.Y)
+	bottomX := segment.SolveForX(t.Bottom.Y)
+	top := &Point{
+		X: topX,
+		Y: t.Top.Y,
+	}
+	bottom := &Point{
+		X: bottomX,
+		Y: t.Bottom.Y,
+	}
+
 	for _, neighbor := range t.TrapezoidsAbove {
 		if neighbor == nil {
 			continue
@@ -103,6 +117,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				left.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(left)
 			}
+		} else {
+			fmt.Println("top side of", left.String(), "is degenerate, no above neighbors added")
 		}
 
 		if !right.IsDegenerateOnSide(Up) {
@@ -113,6 +129,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				right.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(right)
 			}
+		} else {
+			fmt.Println("top side of", right.String(), "is degenerate, no above neighbors added")
 		}
 
 	}
@@ -129,20 +147,23 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				left.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(left)
 			}
+		} else {
+			fmt.Println("bottom side of", left.String(), "is degenerate, no below neighbors added")
 		}
 
 		if !right.IsDegenerateOnSide(Down) {
 			// Check if the bottom of the segment is left of the neighbor's right edge.
 			// If so, it's a neighbor of the right split.
 			if neighbor.Right == nil || neighbor.Right.IsRightOf(bottom) {
-				fmt.Println("Adding neighbor", neighbor.DbgName(), "to", right.DbgName())
-				fmt.Println(neighbor.String())
 				right.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(right)
 			}
+		} else {
+			fmt.Println("bottom side of", right.String(), "is degenerate, no below neighbors added")
 		}
 	}
-
+	fmt.Println("Left:", left.String())
+	fmt.Println("Right:", right.String())
 	return left, right
 }
 
@@ -171,13 +192,13 @@ func (t *Trapezoid) HasPoint(p *Point) bool {
 
 // Check if the trapezoid has a degenerate side (is it a triangle). If either
 // side is nil, then it's never degenerate. Otherwise, this holds when the
-// corresponding segment endpoints are equal.
+// corresponding segment endpoints are equal IFF the corresponding side of the trapezoid is that segment's start or end.
 func (t *Trapezoid) IsDegenerateOnSide(side YDirection) bool {
 	switch side {
 	case Up:
-		return t.Left != nil && t.Left.Top() == t.Right.Top()
+		return t.Left != nil && t.Top == t.Left.Top() && t.Left.Top() == t.Right.Top()
 	case Down:
-		return t.Left != nil && t.Left.Bottom() == t.Right.Bottom()
+		return t.Left != nil && t.Bottom == t.Left.Bottom() && t.Left.Bottom() == t.Right.Bottom()
 	}
 	panic("invalid side")
 }

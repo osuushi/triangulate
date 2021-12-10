@@ -253,9 +253,10 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 	graph.dbgDraw(50)
 	var leftTrapezoids []*Trapezoid
 	var rightTrapezoids []*Trapezoid
-trapezoidLoop:
+
 	for { // Loop over the trapezoids
 		// Split this trapezoid horizontally
+		nextNeighbors := curTrapezoid.TrapezoidsAbove // save these off for next traversal step
 		leftTrapezoid, rightTrapezoid := curTrapezoid.SplitBySegment(segment)
 		leftTrapezoids = append(leftTrapezoids, leftTrapezoid)
 		rightTrapezoids = append(rightTrapezoids, rightTrapezoid)
@@ -263,18 +264,22 @@ trapezoidLoop:
 		// Find the next trapezoid out of the up to two neighbors above this one. It
 		// will be the one whose bottom the line segment intersects
 
-		for _, neighbor := range curTrapezoid.TrapezoidsAbove {
+		curTrapezoid = nil
+		for _, neighbor := range nextNeighbors {
 			if neighbor != nil && neighbor.BottomIntersectsSegment(segment) {
 				curTrapezoid = neighbor
 				break
 			}
-			// If we don't find a neighbor, we're done splitting
-			break trapezoidLoop
+		}
+		if curTrapezoid == nil {
+			fmt.Println("No more trapezoids to split")
+			break
 		}
 
 		// We'll stop once we get to the trapezoid that our segment top is the
 		// bottom of. That's the one we created by splitting horizontally.
 		if top == curTrapezoid.Bottom {
+			fmt.Println("Found top trapezoid", curTrapezoid)
 			break
 		}
 	}
@@ -303,33 +308,38 @@ trapezoidLoop:
 
 		// Merge each chunk
 		for _, chunk := range chunks {
-			mergedTrapezoid := new(Trapezoid)
-			bottomTrapezoid := chunk[0]
-			*mergedTrapezoid = *bottomTrapezoid
-			topTrapezoid := chunk[len(chunk)-1]
-			// Merge geometry
-			mergedTrapezoid.Top = topTrapezoid.Top
-			// Merge neighbors
-			mergedTrapezoid.TrapezoidsAbove = topTrapezoid.TrapezoidsAbove
-			// Make the neighbors agree
-			for _, neighbor := range mergedTrapezoid.TrapezoidsAbove {
-				if neighbor == nil {
-					continue
+			var mergedTrapezoid *Trapezoid
+			if len(chunk) == 1 {
+				mergedTrapezoid = chunk[0]
+			} else {
+				mergedTrapezoid = new(Trapezoid)
+				bottomTrapezoid := chunk[0]
+				*mergedTrapezoid = *bottomTrapezoid
+				topTrapezoid := chunk[len(chunk)-1]
+				// Merge geometry
+				mergedTrapezoid.Top = topTrapezoid.Top
+				// Merge neighbors
+				mergedTrapezoid.TrapezoidsAbove = topTrapezoid.TrapezoidsAbove
+				// Make the neighbors agree
+				for _, neighbor := range mergedTrapezoid.TrapezoidsAbove {
+					if neighbor == nil {
+						continue
+					}
+					neighbor.TrapezoidsBelow.ReplaceOrAdd(topTrapezoid, mergedTrapezoid)
 				}
-				neighbor.TrapezoidsBelow.ReplaceOrAdd(topTrapezoid, mergedTrapezoid)
-			}
 
-			for _, neighbor := range mergedTrapezoid.TrapezoidsBelow {
-				if neighbor == nil {
-					continue
+				for _, neighbor := range mergedTrapezoid.TrapezoidsBelow {
+					if neighbor == nil {
+						continue
+					}
+					neighbor.TrapezoidsAbove.ReplaceOrAdd(bottomTrapezoid, mergedTrapezoid)
 				}
-				neighbor.TrapezoidsAbove.ReplaceOrAdd(bottomTrapezoid, mergedTrapezoid)
 			}
 
 			// Note that we can't set an initial parent on the new sink, because
 			// (assuming there's more than one trapezoid in the chunk), the node will
 			// have multiple XNode parents.
-			mergedTrapezoid.Sink = &QueryNode{SinkNode{Trapezoid: mergedTrapezoid}}
+			sink := &QueryNode{SinkNode{Trapezoid: mergedTrapezoid}}
 
 			// Change every SinkNode to XNode, or complete the XNode depending on direction
 			for _, trapezoid := range chunk {
@@ -341,15 +351,17 @@ trapezoidLoop:
 				if side == Left { // On left side, we're making a new XNode
 					xnode = XNode{
 						Key:  segment,
-						Left: mergedTrapezoid.Sink,
+						Left: sink,
 					}
 				} else { // On right side, we created the xnode when we did the left side, so we just need to update it
 					xnode = node.Inner.(XNode)
-					xnode.Right = mergedTrapezoid.Sink
+					xnode.Right = sink
 				}
 				// Update the node
 				node.Inner = xnode
 			}
+
+			mergedTrapezoid.Sink = sink
 		}
 	}
 }
@@ -403,7 +415,8 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
-	fmt.Println("Split into:", top.DbgName(), bottom.DbgName())
+	fmt.Println("Top:", top.String())
+	fmt.Println("Bottom:", bottom.String())
 }
 
 // Add a polygon to the graph. If the polygon winds clockwise, this will end up
