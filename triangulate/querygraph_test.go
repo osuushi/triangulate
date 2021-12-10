@@ -155,21 +155,17 @@ func TestSplitTrapezoidHorizontally(t *testing.T) {
 func TestAddPolygon_Triangle(t *testing.T) {
 	// Create a graph for a simple triangle with no horizontal edges
 	g := &QueryGraph{}
-	g.AddPolygon(Polygon{[]*Point{
+	poly := Polygon{[]*Point{
 		{X: 1, Y: 0},
 		{X: -1, Y: 1},
 		{X: -1, Y: -1},
-	}})
+	}}
+	g.AddPolygon(poly)
 
 	// Validate the graph
 	validateNeighborGraph(t, g)
 	// Test points
-	assert.True(t, g.ContainsPoint(&Point{X: 0, Y: 0}))
-	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: -.5}))
-	assert.True(t, g.ContainsPoint(&Point{X: -.8, Y: .5}))
-	assert.False(t, g.ContainsPoint(&Point{X: .8, Y: -.5}))
-	assert.False(t, g.ContainsPoint(&Point{X: .8, Y: .5}))
-	assert.False(t, g.ContainsPoint(&Point{X: 2, Y: 1}))
+	validateGraphViaWindingRule(t, g, poly, -2, -2, 2, 2, 0.1)
 }
 
 func TestAddPolygon_Circle(t *testing.T) {
@@ -192,17 +188,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 	fmt.Println("----")
 
 	// Scan over the circle sampling points and comparing to the winding rule
-	for y := -radius - 1; y <= radius+1; y += 0.1 {
-		for x := -radius - 1; x <= radius+1; x += 0.1 {
-			p := &Point{X: x, Y: y}
-			actual := g.ContainsPoint(p)
-			if poly.ContainsPointByWinding(p) {
-				assert.True(t, actual, "point %v should be in the polygon", p)
-			} else {
-				assert.False(t, actual, "point %v should not be in the polygon", p)
-			}
-		}
-	}
+	validateGraphViaWindingRule(t, g, poly, -radius-1, -radius-1, radius+1, radius+1, 0.1)
 }
 
 func TestAddPolygon_Star(t *testing.T) {
@@ -220,9 +206,34 @@ func TestAddPolygon_Star(t *testing.T) {
 		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
 	}
 	g := &QueryGraph{}
-	g.AddPolygon(Polygon{points})
+	poly := Polygon{points}
+	g.AddPolygon(poly)
+	validateNeighborGraph(t, g)
+	validateGraphViaWindingRule(t, g, poly, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1)
 }
 
+func TestAddPolygon_SquareWithHole(t *testing.T) {
+	outerPoints := []*Point{
+		{X: -5, Y: -5},
+		{X: 5, Y: -5},
+		{X: 5, Y: 5},
+		{X: -5, Y: 5},
+	}
+
+	holePoints := []*Point{
+		{X: -2, Y: -2},
+		{X: -2, Y: 2},
+		{X: 2, Y: 2},
+		{X: 2, Y: -2},
+	}
+
+	g := &QueryGraph{}
+	outerPoly := Polygon{outerPoints}
+	holePoly := Polygon{holePoints}
+	g.AddPolygon(outerPoly)
+	g.AddPolygon(holePoly)
+	g.dbgDraw(100)
+}
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	// Find all the trapezoids in the graph
 	var trapezoids []*Trapezoid
@@ -251,6 +262,20 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 			assert.Contains(t, neighbor.TrapezoidsAbove, trapezoid, "below neighbor %s does not have %s as an above neighbor", neighbor, trapezoid)
 			// Check graph connectivity
 			assert.Contains(t, trapezoids, neighbor, "below neighbor %s is not in the graph", neighbor)
+		}
+	}
+}
+
+func validateGraphViaWindingRule(t *testing.T, graph *QueryGraph, poly Polygon, minX, minY, maxX, maxY, step float64) {
+	for y := minY; y <= maxY; y += step {
+		for x := minX; x <= maxX; x += step {
+			p := &Point{X: x, Y: y}
+			actual := graph.ContainsPoint(p)
+			if poly.ContainsPointByWinding(p) {
+				assert.True(t, actual, "point %v should be in the polygon", p)
+			} else {
+				assert.False(t, actual, "point %v should not be in the polygon", p)
+			}
 		}
 	}
 }

@@ -92,8 +92,15 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	// First we need to know where the segment intersects the top and bottom of
 	// the trapezoid we split.
 
-	topX := segment.SolveForX(t.Top.Y)
-	bottomX := segment.SolveForX(t.Bottom.Y)
+	var topX, bottomX float64
+	if segment.IsHorizontal() {
+		topX = segment.Top().X
+		bottomX = segment.Bottom().X
+	} else {
+		topX = segment.SolveForX(t.Top.Y)
+		bottomX = segment.SolveForX(t.Bottom.Y)
+	}
+
 	top := &Point{
 		X: topX,
 		Y: t.Top.Y,
