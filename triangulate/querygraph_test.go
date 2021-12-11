@@ -165,7 +165,7 @@ func TestAddPolygon_Triangle(t *testing.T) {
 	// Validate the graph
 	validateNeighborGraph(t, g)
 	// Test points
-	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -2, -2, 2, 2, 0.1)
+	validateGraphBySampling(t, g, -2, -2, 2, 2, 0.1, poly)
 }
 
 func TestAddPolygon_Circle(t *testing.T) {
@@ -188,7 +188,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 	fmt.Println("----")
 
 	// Scan over the circle sampling points and comparing to the winding rule
-	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -radius-1, -radius-1, radius+1, radius+1, 0.1)
+	validateGraphBySampling(t, g, -radius-1, -radius-1, radius+1, radius+1, 0.1, poly)
 }
 
 func TestAddPolygon_Star(t *testing.T) {
@@ -209,7 +209,7 @@ func TestAddPolygon_Star(t *testing.T) {
 	poly := Polygon{points}
 	g.AddPolygon(poly)
 	validateNeighborGraph(t, g)
-	validateGraphViaWindingRule(t, g, []Polygon{poly}, nil, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1)
+	validateGraphBySampling(t, g, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1, poly)
 }
 
 func TestAddPolygon_SquareWithHole(t *testing.T) {
@@ -233,7 +233,7 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 	g.AddPolygon(outerPoly)
 	g.AddPolygon(holePoly)
 	validateNeighborGraph(t, g)
-	validateGraphViaWindingRule(t, g, []Polygon{outerPoly}, []Polygon{holePoly}, -6, -6, 6, 6, 0.3)
+	validateGraphBySampling(t, g, -6, -6, 6, 6, 0.3, outerPoly, holePoly)
 }
 
 func TestAddPolygon_StarOutline(t *testing.T) {
@@ -268,7 +268,7 @@ func TestAddPolygon_StarOutline(t *testing.T) {
 	g.AddPolygon(holePoly)
 
 	validateNeighborGraph(t, g)
-	validateGraphViaWindingRule(t, g, []Polygon{filledPoly}, []Polygon{holePoly}, -filledOuterRadius-1, -filledOuterRadius-1, filledOuterRadius+1, filledOuterRadius+1, 0.1)
+	validateGraphBySampling(t, g, -filledOuterRadius-1, -filledOuterRadius-1, filledOuterRadius+1, filledOuterRadius+1, 0.1, filledPoly, holePoly)
 }
 
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
@@ -303,32 +303,17 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	}
 }
 
-func validateGraphViaWindingRule(t *testing.T, graph *QueryGraph, filledPolies []Polygon, holePolies []Polygon, minX, minY, maxX, maxY, step float64) {
+func validateGraphBySampling(t *testing.T, graph *QueryGraph, minX, minY, maxX, maxY, step float64, polies ...Polygon) {
+	list := PolygonList(polies)
 	for y := minY; y <= maxY; y += step {
 		for x := minX; x <= maxX; x += step {
 			p := &Point{X: x, Y: y}
 			actual := graph.ContainsPoint(p)
-			if poliesContainPoint(filledPolies, holePolies, p) {
+			if list.ContainsPointByEvenOdd(p) {
 				assert.True(t, actual, "point %v should be in the polygon", p)
 			} else {
 				assert.False(t, actual, "point %v should not be in the polygon", p)
 			}
 		}
 	}
-}
-
-func poliesContainPoint(filledPolies []Polygon, holePolies []Polygon, p *Point) bool {
-	// First check if any hole poly contains the point (this takes precedent)
-	for _, poly := range holePolies {
-		if poly.ContainsPointByEvenOdd(p) {
-			return false
-		}
-	}
-	// Then check if any filled poly contains the point
-	for _, poly := range filledPolies {
-		if poly.ContainsPointByEvenOdd(p) {
-			return true
-		}
-	}
-	return false
 }
