@@ -320,13 +320,13 @@ func validateGraphViaWindingRule(t *testing.T, graph *QueryGraph, filledPolies [
 func poliesContainPoint(filledPolies []Polygon, holePolies []Polygon, p *Point) bool {
 	// First check if any hole poly contains the point (this takes precedent)
 	for _, poly := range holePolies {
-		if poly.ContainsPointByWinding(p) {
+		if poly.ContainsPointByEvenOdd(p) {
 			return false
 		}
 	}
 	// Then check if any filled poly contains the point
 	for _, poly := range filledPolies {
-		if poly.ContainsPointByWinding(p) {
+		if poly.ContainsPointByEvenOdd(p) {
 			return true
 		}
 	}
