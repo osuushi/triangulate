@@ -271,6 +271,78 @@ func TestAddPolygon_StarOutline(t *testing.T) {
 	validateGraphBySampling(t, g, -filledOuterRadius-1, -filledOuterRadius-1, filledOuterRadius+1, filledOuterRadius+1, 0.1, filledPoly, holePoly)
 }
 
+func TestAddPolygon_StarStripes(t *testing.T) {
+	// Multiple inset stars with alternating winding
+	var list PolygonList
+	const outerRadius = 10
+	const n = 20
+	var scale float64 = 1
+	const indentScale = 0.7
+	const gapScale = 0.9
+
+	for i := 0; i < n; i++ {
+		var points []*Point
+		for j := 0; j < 10; j++ {
+			angle := 2 * math.Pi * float64(j) / 10
+			r := outerRadius * scale
+			if j%2 == 1 {
+				r *= indentScale
+			}
+			points = append(points, &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)})
+		}
+		scale *= gapScale
+		poly := Polygon{points}
+		if i%2 == 1 {
+			poly = poly.Reverse()
+		}
+		list = append(list, poly)
+	}
+	g := &QueryGraph{}
+	for _, poly := range list {
+		g.AddPolygon(poly)
+	}
+	validateNeighborGraph(t, g)
+	validateGraphBySampling(t, g, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1, list...)
+}
+
+func TestAddPolygon_MultiLayeredHoles(t *testing.T) {
+	// In this test, we want multiple holes which contain filled shapes inside.
+	makeStar := func(x, y, outerRadius, innerRadius float64) Polygon {
+		points := []*Point{}
+		for i := 0; i < 10; i++ {
+			angle := 2 * math.Pi * float64(i) / 10
+			r := outerRadius
+			if i%2 == 1 {
+				r = innerRadius
+			}
+			points = append(points, &Point{X: x + r*math.Cos(angle), Y: y + r*math.Sin(angle)})
+		}
+		return Polygon{points}
+	}
+	list := PolygonList{
+		// Outer star
+		makeStar(0, 0, 10, 7),
+		// Top hole
+		makeStar(1.5, 5, 3, 2).Reverse(),
+		// Top inner
+		makeStar(1.5, 5, 2, 1),
+		// Bottom hole
+		makeStar(1.8, -5, 3, 2).Reverse(),
+		// Bottom inner
+		makeStar(1.8, -5, 2, 1),
+		// Left hole
+		makeStar(-3, 0, 4, 2).Reverse(),
+		// Left inner
+		makeStar(-3, 0, 3, 1),
+	}
+	g := &QueryGraph{}
+	for _, poly := range list {
+		g.AddPolygon(poly)
+	}
+	validateNeighborGraph(t, g)
+	validateGraphBySampling(t, g, -11, -11, 11, 11, 0.1, list...)
+}
+
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	// Find all the trapezoids in the graph
 	var trapezoids []*Trapezoid
