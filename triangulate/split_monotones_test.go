@@ -1,15 +1,13 @@
 package triangulate
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConvertToMonotones(t *testing.T) {
-	// Splitting something already monotone
+func TestConvertToMonotones_Spiral(t *testing.T) {
 	poly := LoadFixture("spiral")
 	list := ConvertToMonotones(PolygonList{*poly})
 	assert.NotNil(t, list)
@@ -22,19 +20,27 @@ func TestConvertToMonotones(t *testing.T) {
 		}
 	}
 
-	fmt.Println("Ground truth:")
-	PolygonList{*poly}.dbgDraw(50)
-
-	// for i, poly := range list {
-	// 	if IsCW(&poly) {
-	// 		list[i] = poly.Reverse()
-	// 	}
-	// }
 	assert.Equal(t, len(poly.Points), len(pointSet), "expected same number of points in split monotones")
 
-	fmt.Println("Actual:")
-	list.dbgDraw(50)
 	validatePolygonsBySampling(t, list, PolygonList{*poly})
+}
+
+func TestConvertToMonotones_Star(t *testing.T) {
+	star := SimpleStar()
+	list := ConvertToMonotones(star)
+	validatePolygonsBySampling(t, list, star)
+}
+
+func TestConvertToMonotones_SquareWithHole(t *testing.T) {
+	shape := SquareWithHole()
+	// Testing a skew on this
+	for _, poly := range shape {
+		for _, p := range poly.Points {
+			p.Y += 0.1 * p.X
+		}
+	}
+	list := ConvertToMonotones(shape)
+	validatePolygonsBySampling(t, list, shape)
 }
 
 func validatePolygonsBySampling(t *testing.T, actualPolygons PolygonList, expectedPolygons PolygonList) {

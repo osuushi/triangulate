@@ -166,7 +166,7 @@ func TestAddPolygon_Triangle(t *testing.T) {
 	validateNeighborGraph(t, g)
 
 	// Test points
-	validateGraphBySampling(t, g, -2, -2, 2, 2, 0.1, poly)
+	validateGraphBySampling(t, g, PolygonList{poly})
 }
 
 func TestAddPolygon_Circle(t *testing.T) {
@@ -189,7 +189,7 @@ func TestAddPolygon_Circle(t *testing.T) {
 	fmt.Println("----")
 
 	// Scan over the circle sampling points and comparing to the winding rule
-	validateGraphBySampling(t, g, -radius-1, -radius-1, radius+1, radius+1, 0.1, poly)
+	validateGraphBySampling(t, g, PolygonList{poly})
 }
 
 func TestAddPolygon_Spiral(t *testing.T) {
@@ -200,57 +200,29 @@ func TestAddPolygon_Spiral(t *testing.T) {
 	// handling, and uncommenting the below code will eliminate the alignment by
 	// skewing slightly.
 
-	// for _, p := range poly.Points {
-	// 	p.Y += p.X * 0.1
-	// }
+	for _, p := range poly.Points {
+		p.Y += p.X * 0.3
+	}
 	g.AddPolygon(poly)
-	g.dbgDraw(100)
-	validateGraphBySampling(t, g, -10, -10, 10, 10, 0.1, poly)
+	g.dbgDraw(70)
+	validateGraphBySampling(t, g, PolygonList{poly})
 }
 
 func TestAddPolygon_Star(t *testing.T) {
-	var points []*Point
-	const outerRadius = 5
-	const innerRadius = 2
-	for i := 0; i < 10; i++ {
-		var radius float64
-		if i%2 == 0 {
-			radius = outerRadius
-		} else {
-			radius = innerRadius
-		}
-		angle := 2 * math.Pi * float64(i) / 10
-		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
-	}
 	g := &QueryGraph{}
-	poly := Polygon{points}
-	g.AddPolygon(poly)
+	star := SimpleStar()
+	g.AddPolygons(star)
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1, poly)
+	validateGraphBySampling(t, g, star)
 }
 
 func TestAddPolygon_SquareWithHole(t *testing.T) {
-	outerPoints := []*Point{
-		{X: -5, Y: -5},
-		{X: 5, Y: -5},
-		{X: 5, Y: 5},
-		{X: -5, Y: 5},
-	}
-
-	holePoints := []*Point{
-		{X: -2, Y: -2},
-		{X: -2, Y: 2},
-		{X: 2, Y: 2},
-		{X: 2, Y: -2},
-	}
+	list := SquareWithHole()
 
 	g := &QueryGraph{}
-	outerPoly := Polygon{outerPoints}
-	holePoly := Polygon{holePoints}
-	g.AddPolygon(outerPoly)
-	g.AddPolygon(holePoly)
+	g.AddPolygons(list)
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, -6, -6, 6, 6, 0.3, outerPoly, holePoly)
+	validateGraphBySampling(t, g, list)
 }
 
 func TestAddPolygon_StarOutline(t *testing.T) {
@@ -285,7 +257,7 @@ func TestAddPolygon_StarOutline(t *testing.T) {
 	g.AddPolygon(holePoly)
 
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, -filledOuterRadius-1, -filledOuterRadius-1, filledOuterRadius+1, filledOuterRadius+1, 0.1, filledPoly, holePoly)
+	validateGraphBySampling(t, g, PolygonList{filledPoly, holePoly})
 }
 
 func TestAddPolygon_StarStripes(t *testing.T) {
@@ -319,7 +291,7 @@ func TestAddPolygon_StarStripes(t *testing.T) {
 		g.AddPolygon(poly)
 	}
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, -outerRadius-1, -outerRadius-1, outerRadius+1, outerRadius+1, 0.1, list...)
+	validateGraphBySampling(t, g, list)
 }
 
 func TestAddPolygon_MultiLayeredHoles(t *testing.T) {
@@ -357,7 +329,7 @@ func TestAddPolygon_MultiLayeredHoles(t *testing.T) {
 		g.AddPolygon(poly)
 	}
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, -11, -11, 11, 11, 0.1, list...)
+	validateGraphBySampling(t, g, list)
 }
 
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
@@ -400,8 +372,27 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	}
 }
 
-func validateGraphBySampling(t *testing.T, graph *QueryGraph, minX, minY, maxX, maxY, step float64, polies ...Polygon) {
-	list := PolygonList(polies)
+func validateGraphBySampling(t *testing.T, graph *QueryGraph, list PolygonList) {
+	minX, minY, maxX, maxY, step := math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1), 0.1
+
+	for _, poly := range list {
+		for _, p := range poly.Points {
+			minX = math.Min(minX, p.X)
+			minY = math.Min(minY, p.Y)
+			maxX = math.Max(maxX, p.X)
+			maxY = math.Max(maxY, p.Y)
+			maxX = math.Max(maxX, p.X)
+		}
+	}
+
+	// Pad the bounding box by 10%
+	xPadding := (maxX - minX) * 0.1
+	yPadding := (maxY - minY) * 0.1
+	minX -= xPadding
+	minY -= yPadding
+	maxX += xPadding
+	maxY += yPadding
+
 	for y := minY; y <= maxY; y += step {
 		for x := minX; x <= maxX; x += step {
 			p := &Point{X: x, Y: y}

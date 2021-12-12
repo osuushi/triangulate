@@ -3,6 +3,7 @@ package triangulate
 import (
 	"embed"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 
@@ -70,4 +71,44 @@ func LoadFixture(name string) *Polygon {
 		result = result.Reverse()
 	}
 	return &result
+}
+
+// Some ad hoc code specified fixtures
+func SimpleStar() PolygonList {
+	var points []*Point
+	const outerRadius = 5
+	const innerRadius = 2
+	for i := 0; i < 10; i++ {
+		var radius float64
+		if i%2 == 0 {
+			radius = outerRadius
+		} else {
+			radius = innerRadius
+		}
+		angle := 2 * math.Pi * float64(i) / 10
+		points = append(points, &Point{X: radius * math.Cos(angle), Y: radius * math.Sin(angle)})
+	}
+	poly := Polygon{points}
+	return PolygonList{poly}
+}
+
+func SquareWithHole() PolygonList {
+	outerPoints := []*Point{
+		{X: -5, Y: -5},
+		{X: 5, Y: -5},
+		{X: 5, Y: 5},
+		{X: -5, Y: 5},
+	}
+
+	holePoints := []*Point{
+		{X: -2, Y: -2},
+		{X: -2, Y: 2},
+		{X: 2, Y: 2},
+		{X: 2, Y: -2},
+	}
+
+	return PolygonList{
+		Polygon{outerPoints},
+		Polygon{holePoints},
+	}
 }

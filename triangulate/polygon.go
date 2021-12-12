@@ -9,7 +9,7 @@ type Polygon struct {
 // run counter-clockwise.
 type PolygonList []Polygon
 
-// Winding rule point-in-polygon. This is provided primarily for testing of the
+// Even/odd point-in-polygon. This is provided primarily for testing of the
 // Seidel algorithm. If you are checking many points inside the same large
 // polygon, it can be more effficient to trapezoidize it and use the resulting
 // QueryGraph.

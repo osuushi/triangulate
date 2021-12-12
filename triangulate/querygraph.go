@@ -468,6 +468,13 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	dbgDraw()
 }
 
+func (g *QueryGraph) AddPolygons(lsit PolygonList) {
+	// TODO: This should be done all at once rather than one at a time
+	for _, poly := range lsit {
+		g.AddPolygon(poly)
+	}
+}
+
 // Fast test for point-in-polygon using the trapezoid graph. Output is not
 // defined for points exactly on the edge of the graph.
 func (g *QueryGraph) ContainsPoint(point *Point) bool {
@@ -477,7 +484,6 @@ func (g *QueryGraph) ContainsPoint(point *Point) bool {
 		return false
 	}
 
-	// Check if the trapezoid is inside
 	return containingTrapezoid.Inner.(SinkNode).Trapezoid.IsInside()
 }
 
