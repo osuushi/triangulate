@@ -2,6 +2,7 @@ package triangulate
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/logrusorgru/aurora"
@@ -41,6 +42,58 @@ func (t *Trapezoid) IsInside() bool {
 	// polygon, that the right side points up. Note also that a right-to-left
 	// horizontal segment "points down" because of the lexicographic rotation.
 	return t.Left != nil && t.Right != nil && t.Left.PointsDown()
+}
+
+func (t *Trapezoid) SegmentForSide(side XDirection) *Segment {
+	if side == Left {
+		return t.Left
+	}
+	return t.Right
+}
+
+func (t *Trapezoid) xValueForDirection(dir Direction) float64 {
+	segment := t.SegmentForSide(dir.X)
+	// Nil side has infinite X value
+	if segment == nil {
+		if dir.X == Left {
+			return math.Inf(-1)
+		} else {
+			return math.Inf(1)
+		}
+	}
+
+	var boundaryPoint *Point
+	if dir.Y == Up {
+		boundaryPoint = t.Top
+	} else {
+		boundaryPoint = t.Bottom
+	}
+	if boundaryPoint == nil {
+		panic("cannot get x value with no boundary point")
+	}
+
+	// In the horizontal case, there is no solving for Y. Horizontal segment edges can only be on one trapezoid
+	if segment.IsHorizontal() {
+		return boundaryPoint.X
+	}
+	return segment.SolveForX(boundaryPoint.Y)
+}
+
+// This is what decides if two trapezoids are neighbors.
+func (bottomTrapezoid *Trapezoid) NonzeroOverlapWithTrapezoidAbove(topTrapezoid *Trapezoid) bool {
+	// Get bottom extent for top trapezoid
+	topMinX := topTrapezoid.xValueForDirection(Direction{Left, Down})
+	topMaxX := topTrapezoid.xValueForDirection(Direction{Right, Down})
+	// Get top extent for bottom trapezoid
+	bottomMinX := bottomTrapezoid.xValueForDirection(Direction{Left, Up})
+	bottomMaxX := bottomTrapezoid.xValueForDirection(Direction{Right, Up})
+
+	// Find the overlapping range
+	minX := math.Max(topMinX, bottomMinX)
+	maxX := math.Min(topMaxX, bottomMaxX)
+
+	// Determine if the size of the range is greater than zero
+	return (maxX - minX) > Epsilon
 }
 
 // Check if a segment crosses the bottom edge of the trapezoid.
@@ -94,56 +147,21 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 	// First we need to know where the segment intersects the top and bottom of
 	// the trapezoid we split.
 
-	var topX, bottomX float64
-
-	if segment.IsHorizontal() {
-		// If the segment is horizontal, then it has infinitesimally positive slope,
-		// which means that we can only go by top or bottom according to the
-		// lexicographic ordering. There is no meaninful interpolation between these
-		// x values depending on the y value.
-		topX = segment.Top().X
-		bottomX = segment.Bottom().X
-		if Equal(topX, bottomX) {
-			panic("tried to split zero height trapezoid with horizontal segment")
-		}
-	} else {
-		topX = segment.SolveForX(t.Top.Y)
-		bottomX = segment.SolveForX(t.Bottom.Y)
-	}
-
-	top := &Point{
-		X: topX,
-		Y: t.Top.Y,
-	}
-	bottom := &Point{
-		X: bottomX,
-		Y: t.Bottom.Y,
-	}
-
 	for _, neighbor := range t.TrapezoidsAbove {
 		if neighbor == nil {
 			continue
 		}
 		// Remove the old trapezoid as a neighbor
 		neighbor.TrapezoidsBelow.Remove(t)
-		if !left.IsDegenerateOnSide(Up) {
-			// Check if the top of the segment is right of the neighbor's left edge.
-			// If so, it is an above neighbor to the left split. (left edge at infinity
-			// is left of everything)
-			if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
-				left.TrapezoidsAbove.Add(neighbor)
-				neighbor.TrapezoidsBelow.Add(left)
-			}
+
+		if left.NonzeroOverlapWithTrapezoidAbove(neighbor) {
+			left.TrapezoidsAbove.Add(neighbor)
+			neighbor.TrapezoidsBelow.Add(left)
 		}
 
-		if !right.IsDegenerateOnSide(Up) {
-			// Check if the top of the segment is left of the neighbor's right edge.
-			// If so, it's a neighbor of the right split. (right edge at infinity is
-			// right of everything)
-			if neighbor.Right == nil || neighbor.Right.IsRightOf(top) {
-				right.TrapezoidsAbove.Add(neighbor)
-				neighbor.TrapezoidsBelow.Add(right)
-			}
+		if right.NonzeroOverlapWithTrapezoidAbove(neighbor) {
+			right.TrapezoidsAbove.Add(neighbor)
+			neighbor.TrapezoidsBelow.Add(right)
 		}
 	}
 
@@ -152,22 +170,15 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			continue
 		}
 		neighbor.TrapezoidsAbove.Remove(t)
-		if !left.IsDegenerateOnSide(Down) {
-			// Check if the bottom of the segment is right of the neighbor's left
-			// edge. If so, it's a below neighbor to the left split.
-			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
-				left.TrapezoidsBelow.Add(neighbor)
-				neighbor.TrapezoidsAbove.Add(left)
-			}
+
+		if neighbor.NonzeroOverlapWithTrapezoidAbove(left) {
+			left.TrapezoidsBelow.Add(neighbor)
+			neighbor.TrapezoidsAbove.Add(left)
 		}
 
-		if !right.IsDegenerateOnSide(Down) {
-			// Check if the bottom of the segment is left of the neighbor's right edge.
-			// If so, it's a neighbor of the right split.
-			if neighbor.Right == nil || neighbor.Right.IsRightOf(bottom) {
-				right.TrapezoidsBelow.Add(neighbor)
-				neighbor.TrapezoidsAbove.Add(right)
-			}
+		if neighbor.NonzeroOverlapWithTrapezoidAbove(right) {
+			right.TrapezoidsBelow.Add(neighbor)
+			neighbor.TrapezoidsAbove.Add(right)
 		}
 	}
 	fmt.Println("\tLeft trapezoid:", left.String())
