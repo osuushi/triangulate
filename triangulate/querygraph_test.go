@@ -184,10 +184,6 @@ func TestAddPolygon_Circle(t *testing.T) {
 
 	g.AddPolygon(poly)
 
-	fmt.Println("All trapezoids:")
-	g.PrintAllTrapezoids()
-	fmt.Println("----")
-
 	// Scan over the circle sampling points and comparing to the winding rule
 	validateGraphBySampling(t, g, PolygonList{poly})
 }
@@ -223,6 +219,18 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 	g.AddPolygons(list)
 	validateNeighborGraph(t, g)
 	validateGraphBySampling(t, g, list)
+
+	fmt.Println("All trapezoids:")
+	g.PrintAllTrapezoids()
+	fmt.Println("----")
+	// Skew the points and draw the trapezoid set
+	for _, poly := range list {
+		for _, p := range poly.Points {
+			p.Y += p.X * 0.3
+		}
+	}
+
+	g.dbgDraw(70)
 }
 
 func TestAddPolygon_StarOutline(t *testing.T) {

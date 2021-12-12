@@ -185,7 +185,7 @@ func (s *Segment) IsRightOf(p *Point) bool {
 	}
 	// Handle horizontal case
 	if Equal(s.Start.Y, s.End.Y) {
-		return GreaterThan(s.Start.X, p.X) && GreaterThan(p.X, s.End.X)
+		return GreaterThan(s.Top().X, p.X)
 	}
 
 	if s.Start == p || s.End == p {

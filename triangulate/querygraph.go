@@ -1,7 +1,9 @@
 package triangulate
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -201,6 +203,7 @@ func (graph *QueryGraph) PrintAllTrapezoids() {
 			parts = append(parts, node.Trapezoid.String())
 		}
 	}
+	fmt.Println(strings.Join(parts, "\n"))
 }
 
 func (graph *QueryGraph) FindPoint(dp DirectionalPoint) *QueryNode {
@@ -372,6 +375,7 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	sink := node.Inner.(SinkNode)
 	top := new(Trapezoid)
 	bottom := new(Trapezoid)
+	fmt.Println("Splitting trapezoid horizontally:", sink.Trapezoid.String())
 	origTop := sink.Trapezoid.Top
 	origBottom := sink.Trapezoid.Bottom
 	if origTop != nil && origTop.Below(point) {
@@ -415,6 +419,8 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
+	fmt.Println("\tTop:", top.String())
+	fmt.Println("\tBottom:", bottom.String())
 }
 
 // Add a polygon to the graph. If the polygon winds clockwise, this will end up

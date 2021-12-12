@@ -103,6 +103,9 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 		// x values depending on the y value.
 		topX = segment.Top().X
 		bottomX = segment.Bottom().X
+		if Equal(topX, bottomX) {
+			panic("tried to split zero height trapezoid with horizontal segment")
+		}
 	} else {
 		topX = segment.SolveForX(t.Top.Y)
 		bottomX = segment.SolveForX(t.Bottom.Y)
@@ -130,6 +133,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
 				left.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(left)
+			} else {
+				fmt.Println("neighbor", neighbor.String(), "is not above left split")
 			}
 		}
 
@@ -140,6 +145,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Right == nil || neighbor.Right.IsRightOf(top) {
 				right.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(right)
+			} else {
+				fmt.Println("neighbor", neighbor.String(), "is not above right split")
 			}
 		}
 	}
@@ -155,6 +162,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
 				left.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(left)
+			} else {
+				fmt.Println("neighbor", neighbor.String(), "is not below left split")
 			}
 		}
 
@@ -164,6 +173,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Right == nil || neighbor.Right.IsRightOf(bottom) {
 				right.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(right)
+			} else {
+				fmt.Println("neighbor", neighbor.String(), "is not below right split")
 			}
 		}
 	}
@@ -197,7 +208,8 @@ func (t *Trapezoid) HasPoint(p *Point) bool {
 
 // Check if the trapezoid has a degenerate side (is it a triangle). If either
 // side is nil, then it's never degenerate. Otherwise, this holds when the
-// corresponding segment endpoints are equal IFF the corresponding side of the trapezoid is that segment's start or end.
+// corresponding segment endpoints are equal IFF the corresponding side of the
+// trapezoid is that segment's start or end.
 func (t *Trapezoid) IsDegenerateOnSide(side YDirection) bool {
 	switch side {
 	case Up:
