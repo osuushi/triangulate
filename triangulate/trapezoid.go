@@ -133,8 +133,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Left == nil || neighbor.Left.IsLeftOf(top) {
 				left.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(left)
-			} else {
-				fmt.Println("neighbor", neighbor.String(), "is not above left split")
 			}
 		}
 
@@ -145,8 +143,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Right == nil || neighbor.Right.IsRightOf(top) {
 				right.TrapezoidsAbove.Add(neighbor)
 				neighbor.TrapezoidsBelow.Add(right)
-			} else {
-				fmt.Println("neighbor", neighbor.String(), "is not above right split")
 			}
 		}
 	}
@@ -162,8 +158,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Left == nil || neighbor.Left.IsLeftOf(bottom) {
 				left.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(left)
-			} else {
-				fmt.Println("neighbor", neighbor.String(), "is not below left split")
 			}
 		}
 
@@ -173,8 +167,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			if neighbor.Right == nil || neighbor.Right.IsRightOf(bottom) {
 				right.TrapezoidsBelow.Add(neighbor)
 				neighbor.TrapezoidsAbove.Add(right)
-			} else {
-				fmt.Println("neighbor", neighbor.String(), "is not below right split")
 			}
 		}
 	}

@@ -219,18 +219,6 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 	g.AddPolygons(list)
 	validateNeighborGraph(t, g)
 	validateGraphBySampling(t, g, list)
-
-	fmt.Println("All trapezoids:")
-	g.PrintAllTrapezoids()
-	fmt.Println("----")
-	// Skew the points and draw the trapezoid set
-	for _, poly := range list {
-		for _, p := range poly.Points {
-			p.Y += p.X * 0.3
-		}
-	}
-
-	g.dbgDraw(70)
 }
 
 func TestAddPolygon_StarOutline(t *testing.T) {
