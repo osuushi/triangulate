@@ -34,7 +34,7 @@ func TestConvertToMonotones(t *testing.T) {
 
 	fmt.Println("Actual:")
 	list.dbgDraw(50)
-	// validatePolygonsBySampling(t, list, PolygonList{*poly})
+	validatePolygonsBySampling(t, list, PolygonList{*poly})
 }
 
 func validatePolygonsBySampling(t *testing.T, actualPolygons PolygonList, expectedPolygons PolygonList) {
