@@ -282,3 +282,12 @@ func (v Vector) Normalize() Vector {
 func (v Vector) Length() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
+
+// Helper mostly used in tests. Converts the triangles into generic polygons.
+func (triangles TriangleList) ToPolygonList() PolygonList {
+	polyList := make(PolygonList, len(triangles))
+	for i, tri := range triangles {
+		polyList[i] = Polygon{Points: []*Point{tri.A, tri.B, tri.C}}
+	}
+	return polyList
+}

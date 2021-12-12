@@ -20,6 +20,8 @@ type Triangle struct {
 	A, B, C *Point
 }
 
+type TriangleList []*Triangle
+
 type PointStack []*Point
 
 type PointSet map[*Point]struct{}

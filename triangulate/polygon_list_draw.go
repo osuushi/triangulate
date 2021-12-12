@@ -45,7 +45,7 @@ func (pl PolygonList) dbgDraw(scale float64) {
 	// Translate to min
 	c.Translate(-minX, -minY)
 
-	c.SetLineWidth(3)
+	c.SetLineWidth(2)
 	for _, poly := range pl {
 		c.MoveTo(poly.Points[0].X, poly.Points[0].Y)
 		for _, p := range poly.Points[1:] {
@@ -53,9 +53,9 @@ func (pl PolygonList) dbgDraw(scale float64) {
 		}
 		c.ClosePath()
 	}
-	c.SetRGB(0, 0.7, 0)
+	c.SetRGB(0, 0.5, 0)
 	c.FillPreserve()
-	c.SetRGB(0, 0, 1)
+	c.SetRGB(0, 1, 1)
 	c.Stroke()
 
 	c.SavePNG("/tmp/polygon_list.png")
