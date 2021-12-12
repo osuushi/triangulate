@@ -69,6 +69,7 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 // still point to the original trapezoid's sink. This must be fixed after
 // trapezoids with agreeing edges are merged.
 func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
+	fmt.Println("Split trapezoid:", t.String())
 	// Make duplicates and adjust them
 	left = new(Trapezoid)
 	right = new(Trapezoid)
@@ -136,7 +137,6 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 				neighbor.TrapezoidsBelow.Add(right)
 			}
 		}
-
 	}
 
 	for _, neighbor := range t.TrapezoidsBelow {
@@ -162,6 +162,8 @@ func (t *Trapezoid) SplitBySegment(segment *Segment) (left, right *Trapezoid) {
 			}
 		}
 	}
+	fmt.Println("\tLeft trapezoid:", left.String())
+	fmt.Println("\tRight trapezoid:", right.String())
 	return left, right
 }
 
@@ -269,4 +271,13 @@ func (tl *TrapezoidNeighborList) ReplaceOrAdd(orig *Trapezoid, replacement *Trap
 	}
 	// We didn't replace, so we must add
 	tl.Add(replacement)
+}
+
+func (tl *TrapezoidNeighborList) AnyNeighbor() *Trapezoid {
+	for _, neighbor := range *tl {
+		if neighbor != nil {
+			return neighbor
+		}
+	}
+	return nil
 }

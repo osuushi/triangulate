@@ -162,7 +162,15 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	if Equal(s.Start.Y, s.End.Y) {
 		return s.Start.X < p.X && s.End.X < p.X
 	}
+
+	if s.Start == p || s.End == p {
+		return false
+	}
+
 	x := s.SolveForX(p.Y)
+	if Equal(x, p.X) {
+		return false
+	}
 	return x < p.X
 }
 
@@ -174,7 +182,16 @@ func (s *Segment) IsRightOf(p *Point) bool {
 	if Equal(s.Start.Y, s.End.Y) {
 		return s.Start.X > p.X && s.End.X > p.X
 	}
+
+	if s.Start == p || s.End == p {
+		return false
+	}
+
 	x := s.SolveForX(p.Y)
+	if Equal(x, p.X) {
+		return false
+	}
+
 	return x > p.X
 }
 

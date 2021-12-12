@@ -164,6 +164,7 @@ func TestAddPolygon_Triangle(t *testing.T) {
 
 	// Validate the graph
 	validateNeighborGraph(t, g)
+
 	// Test points
 	validateGraphBySampling(t, g, -2, -2, 2, 2, 0.1, poly)
 }
@@ -353,6 +354,8 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 	}
 
 	for _, trapezoid := range trapezoids {
+		var count int
+		count = 0
 		for _, neighbor := range trapezoid.TrapezoidsAbove {
 			if neighbor == nil {
 				continue
@@ -361,7 +364,11 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 			assert.Contains(t, neighbor.TrapezoidsBelow, trapezoid, "above neighbor %s does not have %s as a below neighbor", neighbor, trapezoid)
 			// Check graph connectivity
 			assert.Contains(t, trapezoids, neighbor, "above neighbor %s is not in the graph", neighbor)
+			count++
 		}
+		assert.LessOrEqual(t, count, 2, "trapezoid %s has more than 2 above neighbors", trapezoid)
+
+		count = 0
 		for _, neighbor := range trapezoid.TrapezoidsBelow {
 			if neighbor == nil {
 				continue
@@ -371,7 +378,9 @@ func validateNeighborGraph(t *testing.T, graph *QueryGraph) {
 			assert.Contains(t, neighbor.TrapezoidsAbove, trapezoid, "below neighbor %s does not have %s as an above neighbor", neighbor, trapezoid)
 			// Check graph connectivity
 			assert.Contains(t, trapezoids, neighbor, "below neighbor %s is not in the graph", neighbor)
+			count++
 		}
+		assert.LessOrEqual(t, count, 2, "trapezoid %s has more than 2 below neighbors", trapezoid)
 	}
 }
 
