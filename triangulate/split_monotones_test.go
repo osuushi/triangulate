@@ -43,6 +43,24 @@ func TestConvertToMonotones_SquareWithHole(t *testing.T) {
 	validatePolygonsBySampling(t, list, shape)
 }
 
+func TestConvertToMonotones_StarOutline(t *testing.T) {
+	shape := StarOutline()
+	list := ConvertToMonotones(shape)
+	validatePolygonsBySampling(t, list, shape)
+}
+
+func TestConvertToMonotones_StarStripes(t *testing.T) {
+	shape := StarStripes()
+	list := ConvertToMonotones(shape)
+	validatePolygonsBySampling(t, list, shape)
+}
+
+func TestConvertToMonotones_MultiLayeredHoles(t *testing.T) {
+	shape := MultiLayeredHoles()
+	list := ConvertToMonotones(shape)
+	validatePolygonsBySampling(t, list, shape)
+}
+
 func validatePolygonsBySampling(t *testing.T, actualPolygons PolygonList, expectedPolygons PolygonList) {
 	minX, minY, maxX, maxY, step := math.Inf(1), math.Inf(1), math.Inf(-1), math.Inf(-1), 0.1
 	for _, list := range []PolygonList{actualPolygons, expectedPolygons} {

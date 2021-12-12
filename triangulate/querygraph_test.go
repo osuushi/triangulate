@@ -222,110 +222,28 @@ func TestAddPolygon_SquareWithHole(t *testing.T) {
 }
 
 func TestAddPolygon_StarOutline(t *testing.T) {
-	filledPoints := []*Point{}
-	holePoints := []*Point{}
-	const filledOuterRadius = 10
-	const filledInnerRadius = 5
-	const holeOuterRadius = filledOuterRadius - 2
-	const holeInnerRadius = filledInnerRadius - 2
-	for i := 0; i < 10; i++ {
-		var (
-			filledRadius float64
-			holeRadius   float64
-		)
-		if i%2 == 0 {
-			filledRadius = filledOuterRadius
-			holeRadius = holeOuterRadius
-		} else {
-			filledRadius = filledInnerRadius
-			holeRadius = holeInnerRadius
-		}
-		angle := 2 * math.Pi * float64(i) / 10
-		filledPoints = append(filledPoints, &Point{X: filledRadius * math.Cos(angle), Y: filledRadius * math.Sin(angle)})
-		holePoints = append(holePoints, &Point{X: holeRadius * math.Cos(angle), Y: holeRadius * math.Sin(angle)})
-	}
-
-	filledPoly := Polygon{filledPoints}
-	holePoly := Polygon{holePoints}.Reverse()
-
+	shape := StarOutline()
 	g := &QueryGraph{}
-	g.AddPolygon(filledPoly)
-	g.AddPolygon(holePoly)
+	g.AddPolygons(shape)
 
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, PolygonList{filledPoly, holePoly})
+	validateGraphBySampling(t, g, shape)
 }
 
 func TestAddPolygon_StarStripes(t *testing.T) {
-	// Multiple inset stars with alternating winding
-	var list PolygonList
-	const outerRadius = 10
-	const n = 20
-	var scale float64 = 1
-	const indentScale = 0.7
-	const gapScale = 0.9
-
-	for i := 0; i < n; i++ {
-		var points []*Point
-		for j := 0; j < 10; j++ {
-			angle := 2 * math.Pi * float64(j) / 10
-			r := outerRadius * scale
-			if j%2 == 1 {
-				r *= indentScale
-			}
-			points = append(points, &Point{X: r * math.Cos(angle), Y: r * math.Sin(angle)})
-		}
-		scale *= gapScale
-		poly := Polygon{points}
-		if i%2 == 1 {
-			poly = poly.Reverse()
-		}
-		list = append(list, poly)
-	}
+	shape := StarStripes()
 	g := &QueryGraph{}
-	for _, poly := range list {
-		g.AddPolygon(poly)
-	}
+	g.AddPolygons(shape)
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, list)
+	validateGraphBySampling(t, g, shape)
 }
 
 func TestAddPolygon_MultiLayeredHoles(t *testing.T) {
-	// In this test, we want multiple holes which contain filled shapes inside.
-	makeStar := func(x, y, outerRadius, innerRadius float64) Polygon {
-		points := []*Point{}
-		for i := 0; i < 10; i++ {
-			angle := 2 * math.Pi * float64(i) / 10
-			r := outerRadius
-			if i%2 == 1 {
-				r = innerRadius
-			}
-			points = append(points, &Point{X: x + r*math.Cos(angle), Y: y + r*math.Sin(angle)})
-		}
-		return Polygon{points}
-	}
-	list := PolygonList{
-		// Outer star
-		makeStar(0, 0, 10, 7),
-		// Top hole
-		makeStar(1.5, 5, 3, 2).Reverse(),
-		// Top inner
-		makeStar(1.5, 5, 2, 1),
-		// Bottom hole
-		makeStar(1.8, -5, 3, 2).Reverse(),
-		// Bottom inner
-		makeStar(1.8, -5, 2, 1),
-		// Left hole
-		makeStar(-3, 0, 4, 2).Reverse(),
-		// Left inner
-		makeStar(-3, 0, 3, 1),
-	}
+	shape := MultiLayeredHoles()
 	g := &QueryGraph{}
-	for _, poly := range list {
-		g.AddPolygon(poly)
-	}
+	g.AddPolygons(shape)
 	validateNeighborGraph(t, g)
-	validateGraphBySampling(t, g, list)
+	validateGraphBySampling(t, g, shape)
 }
 
 func validateNeighborGraph(t *testing.T, graph *QueryGraph) {

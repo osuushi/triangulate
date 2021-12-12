@@ -13,24 +13,24 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 	}
 
 	// Skew the points and draw the trapezoid set
-	originalPoints := make(map[*Point]Point)
-	for _, poly := range list {
-		for _, p := range poly.Points {
-			if _, ok := originalPoints[p]; !ok {
-				originalPoints[p] = *p
-			}
-			p.Y += p.X * 0.3
-		}
-	}
+	// originalPoints := make(map[*Point]Point)
+	// for _, poly := range list {
+	// 	for _, p := range poly.Points {
+	// 		if _, ok := originalPoints[p]; !ok {
+	// 			originalPoints[p] = *p
+	// 		}
+	// 		p.Y += p.X * 0.3
+	// 	}
+	// }
 
 	graph.dbgDraw(50)
 
-	// Restore from skew
-	for _, poly := range list {
-		for _, p := range poly.Points {
-			*p = originalPoints[p]
-		}
-	}
+	// // Restore from skew
+	// for _, poly := range list {
+	// 	for _, p := range poly.Points {
+	// 		*p = originalPoints[p]
+	// 	}
+	// }
 	graph.PrintAllTrapezoids()
 
 	trapezoids := make(TrapezoidSet)
@@ -126,6 +126,9 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 		// Add the polygon to the result
 		result = append(result, Polygon{points})
 	}
+
+	fmt.Println("Result:")
+	result.dbgDraw(50)
 	return result
 }
 
