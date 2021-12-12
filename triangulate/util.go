@@ -14,6 +14,14 @@ func Equal(a, b float64) bool {
 	return math.Abs(a-b) < Epsilon
 }
 
+func GreaterThan(a, b float64) bool {
+	return a-b > Epsilon
+}
+
+func LessThan(a, b float64) bool {
+	return b-a > Epsilon
+}
+
 // A common convention in our geometry is that if two points have the same Y
 // value, the one with the smallex X value is "lower". This simulates a slightly
 // rotated coordinate system, allowing us to assume Y values are never equal.
@@ -160,7 +168,7 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	}
 	// Handle horizontal case
 	if Equal(s.Start.Y, s.End.Y) {
-		return s.Start.X < p.X && s.End.X < p.X
+		return LessThan(s.Start.X, p.X) && LessThan(p.X, s.End.X)
 	}
 
 	if s.Start == p || s.End == p {
@@ -168,10 +176,7 @@ func (s *Segment) IsLeftOf(p *Point) bool {
 	}
 
 	x := s.SolveForX(p.Y)
-	if Equal(x, p.X) {
-		return false
-	}
-	return x < p.X
+	return LessThan(x, p.X)
 }
 
 func (s *Segment) IsRightOf(p *Point) bool {
@@ -180,7 +185,7 @@ func (s *Segment) IsRightOf(p *Point) bool {
 	}
 	// Handle horizontal case
 	if Equal(s.Start.Y, s.End.Y) {
-		return s.Start.X > p.X && s.End.X > p.X
+		return GreaterThan(s.Start.X, p.X) && GreaterThan(p.X, s.End.X)
 	}
 
 	if s.Start == p || s.End == p {
@@ -188,11 +193,7 @@ func (s *Segment) IsRightOf(p *Point) bool {
 	}
 
 	x := s.SolveForX(p.Y)
-	if Equal(x, p.X) {
-		return false
-	}
-
-	return x > p.X
+	return GreaterThan(x, p.X)
 }
 
 // Determine which direction the segment points from top to bottom

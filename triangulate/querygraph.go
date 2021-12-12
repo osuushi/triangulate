@@ -255,12 +255,25 @@ func (graph *QueryGraph) AddSegment(segment *Segment) {
 		// will be the one whose bottom the line segment intersects
 
 		curTrapezoid = nil
+		// First check for single neighbor case
+		var neighborCount int
 		for _, neighbor := range nextNeighbors {
-			if neighbor != nil && neighbor.BottomIntersectsSegment(segment) {
-				curTrapezoid = neighbor
-				break
+			if neighbor != nil {
+				neighborCount++
 			}
 		}
+
+		if neighborCount == 1 {
+			curTrapezoid = nextNeighbors.AnyNeighbor()
+		} else {
+			for _, neighbor := range nextNeighbors {
+				if neighbor != nil && neighbor.BottomIntersectsSegment(segment) {
+					curTrapezoid = neighbor
+					break
+				}
+			}
+		}
+
 		if curTrapezoid == nil {
 			break
 		}
@@ -466,4 +479,12 @@ func (g *QueryGraph) ContainsPoint(point *Point) bool {
 
 	// Check if the trapezoid is inside
 	return containingTrapezoid.Inner.(SinkNode).Trapezoid.IsInside()
+}
+
+func (g *QueryGraph) IterateGraph() chan *QueryNode {
+	return IterateGraph(g.Root)
+}
+
+func (g *QueryGraph) IterateTrapezoids() chan *Trapezoid {
+	return IterateTrapezoids(g.Root)
 }

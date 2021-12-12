@@ -192,6 +192,22 @@ func TestAddPolygon_Circle(t *testing.T) {
 	validateGraphBySampling(t, g, -radius-1, -radius-1, radius+1, radius+1, 0.1, poly)
 }
 
+func TestAddPolygon_Spiral(t *testing.T) {
+	poly := *LoadFixture("spiral")
+	g := &QueryGraph{}
+
+	// Testing: skew the points. This is a real stress test of vertical alignment
+	// handling, and uncommenting the below code will eliminate the alignment by
+	// skewing slightly.
+
+	// for _, p := range poly.Points {
+	// 	p.Y += p.X * 0.1
+	// }
+	g.AddPolygon(poly)
+	g.dbgDraw(100)
+	validateGraphBySampling(t, g, -10, -10, 10, 10, 0.1, poly)
+}
+
 func TestAddPolygon_Star(t *testing.T) {
 	var points []*Point
 	const outerRadius = 5

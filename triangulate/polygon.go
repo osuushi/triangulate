@@ -28,7 +28,7 @@ func (poly Polygon) CrossingCount(p *Point) int {
 		nextVertex := poly.Points[CircularIndex(i+1, len(poly.Points))]
 
 		segment := Segment{vertex, nextVertex}
-		if segment.IsRightOf(p) && vertex.Below(p) != nextVertex.Below(p) {
+		if !segment.IsLeftOf(p) && vertex.Below(p) != nextVertex.Below(p) {
 			crossingCount++
 		}
 	}

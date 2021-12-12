@@ -43,17 +43,28 @@ func (t *Trapezoid) IsInside() bool {
 	return t.Left != nil && t.Right != nil && t.Left.PointsDown()
 }
 
-// Check if a segment crosses the bottom edge of the trapezoid. If the segment
-// is horizontal, this always returns false.
+// Check if a segment crosses the bottom edge of the trapezoid.
 func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
-	if segment.IsHorizontal() {
-		// The only way a horizontal segment could intersect the bottom of a
-		// trapezoid would be if segments crossed. This is assumed never to be the
-		// case.
-		return false
-	}
 	if t.Bottom == nil { // Bottom is at infinity, nothing can intersect it
 		return false
+	}
+
+	// Check the case where the bottom point of the trapezoid is an edge, and is
+	// the endpoint of the segment. In this case, we never intersect the bottom.
+	if t.Bottom == segment.Start || t.Bottom == segment.End {
+		if (t.Left != nil && t.Left.Bottom() == t.Bottom) || (t.Right != nil && t.Right.Bottom() == t.Bottom) {
+			return false
+		}
+	}
+
+	if segment.IsHorizontal() {
+		// If a segment is horizontal, we have to think in terms of the
+		// infinitesimal rotation. Note that the adjusted Y value of the bottom of
+		// the trapezoid is determined entirely by its bottom point's Y _and_ X
+		// value, and note that the bottom point always sits on the trapezoid's
+		// boundary. Therefore, we cross iff the Y values match, and the X values
+		// straddle the bottom point's X value.
+		return Equal(segment.Bottom().Y, t.Bottom.Y) && LessThan(segment.Bottom().X, t.Bottom.X) && GreaterThan(segment.Top().X, t.Bottom.X)
 	}
 
 	// Find the x value for the segment at the bottom of the trapezoid
