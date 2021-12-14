@@ -12,27 +12,6 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 		graph.AddPolygon(polygon)
 	}
 
-	// Skew the points and draw the trapezoid set
-	// originalPoints := make(map[*Point]Point)
-	// for _, poly := range list {
-	// 	for _, p := range poly.Points {
-	// 		if _, ok := originalPoints[p]; !ok {
-	// 			originalPoints[p] = *p
-	// 		}
-	// 		p.Y += p.X * 0.3
-	// 	}
-	// }
-
-	graph.dbgDraw(50)
-
-	// // Restore from skew
-	// for _, poly := range list {
-	// 	for _, p := range poly.Points {
-	// 		*p = originalPoints[p]
-	// 	}
-	// }
-	graph.PrintAllTrapezoids()
-
 	trapezoids := make(TrapezoidSet)
 	for trapezoid := range graph.IterateTrapezoids() {
 		// Skip trapezoids that aren't inside
@@ -41,9 +20,6 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 		}
 		trapezoids[trapezoid] = struct{}{}
 	}
-
-	fmt.Println("Before splitting:")
-	dbgDrawTrapezoids(trapezoids, 50)
 
 	// This step will turn all trapezoids that should have diagonals (trapezoids
 	// who have two non-adjacent points on their boundary) into two trapezoids.
@@ -55,9 +31,6 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 	// inside.
 	splitTrapezoidsOnDiagonals(trapezoids)
 
-	fmt.Println("After splitting:")
-	dbgDrawTrapezoids(trapezoids, 50)
-
 	var result PolygonList
 	for trapezoid := range trapezoids {
 		// Scan to the top trapezoid in the monotone. It will always be degenerate
@@ -65,16 +38,13 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 		for {
 			aboveNeighbor := trapezoid.TrapezoidsAbove.AnyNeighbor()
 			if aboveNeighbor == nil {
-				fmt.Println("No neighbor above")
 				break
 			}
 			if _, ok := trapezoids[aboveNeighbor]; !ok {
-				fmt.Println("Above neighbor not in trapezoid set")
 				break
 			}
 			trapezoid = aboveNeighbor
 		}
-		fmt.Println("Walking from top trapezoid:", trapezoid.String())
 
 		// The top point is on both chains. We arbitrarily put it on the left
 		leftChain := []*Point{trapezoid.Top}
@@ -111,7 +81,6 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 				break
 			}
 			trapezoid = belowNeighbor
-			fmt.Println("Walking to below trapezoid:", trapezoid.String())
 		}
 
 		// Now concatenate all the points from the right chain onto the left in reverse order
@@ -126,9 +95,6 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 		// Add the polygon to the result
 		result = append(result, Polygon{points})
 	}
-
-	fmt.Println("Result:")
-	result.dbgDraw(50)
 	return result
 }
 

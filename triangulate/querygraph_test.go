@@ -116,11 +116,9 @@ func TestAddSegment(t *testing.T) {
 		End:   &Point{X: 9, Y: 8},
 	})
 
-	// // Add a segment below everything
-	// g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
-	// validateNeighborGraph(t, g)
-
-	g.PrintAllTrapezoids()
+	// Add a segment below everything
+	g.AddSegment(&Segment{&Point{X: 5, Y: -30}, &Point{X: 1, Y: -20}})
+	validateNeighborGraph(t, g)
 
 	// Add a segment that connects to the first one
 	connectedSegment := &Segment{firstSegment.End, &Point{X: 20, Y: 4}}
@@ -200,7 +198,6 @@ func TestAddPolygon_Spiral(t *testing.T) {
 		p.Y += p.X * 0.3
 	}
 	g.AddPolygon(poly)
-	g.dbgDraw(70)
 	validateGraphBySampling(t, g, PolygonList{poly})
 }
 

@@ -375,7 +375,6 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	sink := node.Inner.(SinkNode)
 	top := new(Trapezoid)
 	bottom := new(Trapezoid)
-	fmt.Println("Splitting trapezoid horizontally:", sink.Trapezoid.String())
 	origTop := sink.Trapezoid.Top
 	origBottom := sink.Trapezoid.Bottom
 	if origTop != nil && origTop.Below(point) {
@@ -419,8 +418,6 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 		Above: top.Sink,
 		Below: bottom.Sink,
 	}
-	fmt.Println("\tTop:", top.String())
-	fmt.Println("\tBottom:", bottom.String())
 }
 
 // Add a polygon to the graph. If the polygon winds clockwise, this will end up
@@ -433,9 +430,7 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 // "true" for proper randomization.
 func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	var seed int64
-	dbgDraw := func() {
-		// graph.dbgDraw(100)
-	}
+
 	if len(nondeterministic) > 0 && nondeterministic[0] {
 		// TODO: We should make an adapter for crypto/random, and secure random
 		// numbers when nondeterministic mode is selected. Low priority, as it would
@@ -468,10 +463,8 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	// TODO: Add the preprocessing step which finds new search roots for every
 	// point. That step will make the algorithm O(nlog*n)
 	for _, segment := range segments {
-		dbgDraw()
 		graph.AddSegment(segment)
 	}
-	dbgDraw()
 }
 
 func (g *QueryGraph) AddPolygons(lsit PolygonList) {
