@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-const Epsilon = 1e-6
+const Epsilon = 1e-7
 
 // To compensate for imprecision in floats, equality is tolerance based. If we
 // don't account for this, we'll end up shaving off absurdly thin triangles on nearly
