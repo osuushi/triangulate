@@ -147,7 +147,7 @@ generality is lost.
 That's true.
 
 The authors of these papers will then note as an aside that this rotation can be
-simulated by a lexocographic trick, whereby given to points with equal Y values,
+simulated by a lexocographic trick, whereby given two points with equal Y values,
 the left point is considered "lower". A casual reader of these papers may come
 away thinking that this trick is simple and tidy.
 
