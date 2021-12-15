@@ -1,5 +1,7 @@
 # Triangulate
 
+![Show-off image](img/showoff.png)
+
 An asymptotically fast triangulation package for Go.
 
 This is in active development, and the API may change while I use it in real
