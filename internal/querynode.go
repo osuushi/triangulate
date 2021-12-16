@@ -1,4 +1,4 @@
-package triangulate
+package internal
 
 // Node for the query structure. The query structure allows us to navigate the
 // trapezoid set efficiently, and can be built in O(nlog(n)) time. (TODO: There

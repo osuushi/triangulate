@@ -1,4 +1,4 @@
-package triangulate
+package internal
 
 func (list PolygonList) Triangulate() TriangleList {
 	monotones := ConvertToMonotones(list)

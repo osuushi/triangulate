@@ -1,4 +1,4 @@
-package triangulate
+package internal
 
 import (
 	"embed"

@@ -1,4 +1,4 @@
-package triangulate
+package internal
 
 type Point struct {
 	X float64

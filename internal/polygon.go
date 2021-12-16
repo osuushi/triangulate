@@ -1,4 +1,4 @@
-package triangulate
+package internal
 
 type Polygon struct {
 	Points []*Point
