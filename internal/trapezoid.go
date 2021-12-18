@@ -69,7 +69,7 @@ func (t *Trapezoid) xValueForDirection(dir Direction) float64 {
 		boundaryPoint = t.Bottom
 	}
 	if boundaryPoint == nil {
-		panic("cannot get x value with no boundary point")
+		fatalf("cannot get x value with no boundary point")
 	}
 
 	// In the horizontal case, there is no solving for Y. Horizontal segment edges can only be on one trapezoid
@@ -111,7 +111,7 @@ func (t *Trapezoid) BottomIntersectsSegment(segment *Segment) bool {
 	}
 
 	if segment.IsHorizontal() {
-		panic("tried to intersect horizontal segment with bottom")
+		fatalf("tried to intersect horizontal segment with bottom")
 	}
 
 	// Find the x value for the segment at the bottom of the trapezoid
@@ -217,7 +217,8 @@ func (t *Trapezoid) IsDegenerateOnSide(side YDirection) bool {
 	case Down:
 		return t.Left != nil && t.Bottom == t.Left.Bottom() && t.Left.Bottom() == t.Right.Bottom()
 	}
-	panic("invalid side")
+	fatalf("invalid side")
+	return false // unreachable
 }
 
 func (t *Trapezoid) String() string {
@@ -266,7 +267,7 @@ func (tl *TrapezoidNeighborList) Add(t *Trapezoid) {
 			return
 		}
 	}
-	panic("too many neighbors")
+	fatalf("too many neighbors")
 }
 
 func (tl *TrapezoidNeighborList) Remove(t *Trapezoid) {

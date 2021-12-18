@@ -1,3 +1,9 @@
+// An asymptotically fast triangulation package for Go.
+//
+// This package allows you to convert a set of simple polygons, which may be
+// non-convex, may be disjoint, and may contain holes, and convert them into a
+// set of triangles containing only the original points.
+
 package triangulate
 
 import "github.com/osuushi/triangulate/internal"
@@ -17,7 +23,14 @@ type Triangle struct {
 // order.
 //
 // The order of the polygons is irrelevant. See the readme for more details.
-func Triangulate(polygons ...[]Point) []Triangle {
+func Triangulate(polygons ...[]Point) (result []Triangle, err error) {
+	defer func() {
+		recoveredErr := internal.RecoverFromTriangulatePanic(recover())
+		if recoveredErr != nil {
+			result = nil
+			err = recoveredErr
+		}
+	}()
 	// To avoid having to export everything into the top level package, while
 	// making the internal package still largely exported for advanced usage, we
 	// copy all the points into the internal types. This keeps the external API
@@ -44,5 +57,5 @@ func Triangulate(polygons ...[]Point) []Triangle {
 			C: Point{triangle.C.X, triangle.C.Y},
 		}
 	}
-	return triangles
+	return triangles, nil
 }

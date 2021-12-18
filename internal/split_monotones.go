@@ -1,7 +1,5 @@
 package internal
 
-import "fmt"
-
 type TrapezoidSet map[*Trapezoid]struct{}
 
 // Use a query graph to split a set of polygons into monotone polygons.
@@ -69,7 +67,7 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 			} else if bottom == rightBottom {
 				rightChain = append(rightChain, bottom)
 			} else {
-				panic("bottom was not on either chain")
+				fatalf("bottom point was not on either chain")
 			}
 
 			delete(trapezoids, trapezoid) // Skip iterating this later
@@ -89,7 +87,7 @@ func ConvertToMonotones(list PolygonList) PolygonList {
 			points = append(points, rightChain[i])
 		}
 		if len(points) < 3 {
-			panic(fmt.Sprintf("polygon is degenerate: %#v", points))
+			fatalf("polygon is degenerate: %#v", points)
 		}
 
 		// Add the polygon to the result

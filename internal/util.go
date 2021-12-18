@@ -261,7 +261,7 @@ func (s *Segment) IsVertical() bool {
 // Solve the line (ignoring the bounds) for the given y value
 func (s *Segment) SolveForX(y float64) float64 {
 	if s.IsHorizontal() {
-		panic("Cannot solve for X on a horizontal segment")
+		fatalf("cannot solve for X on a horizontal segment")
 	}
 	if s.IsVertical() { // Special case; no slope
 		return s.Start.X

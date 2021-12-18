@@ -212,7 +212,7 @@ func (graph *QueryGraph) FindPoint(dp DirectionalPoint) *QueryNode {
 
 func (graph *QueryGraph) AddSegment(segment *Segment) {
 	if segment == nil {
-		panic("nil segment")
+		fatalf("nil segment")
 	}
 
 	top := segment.Top()
@@ -378,10 +378,10 @@ func (graph *QueryGraph) SplitTrapezoidHorizontally(node *QueryNode, point *Poin
 	origTop := sink.Trapezoid.Top
 	origBottom := sink.Trapezoid.Bottom
 	if origTop != nil && origTop.Below(point) {
-		panic("cannot split on point above top")
+		fatalf("cannot split on point above top")
 	}
 	if origBottom != nil && origBottom.Above(point) {
-		panic("cannot split on point below bottom")
+		fatalf("cannot split on point below bottom")
 	}
 
 	// Duplicate and adjust

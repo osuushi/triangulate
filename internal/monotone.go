@@ -1,10 +1,5 @@
 package internal
 
-import (
-	"fmt"
-	"strconv"
-)
-
 // Facilities for converting a Y-monotone polygon into triangles. A Y monotone
 // polygon is a simple polygon such that any horizontal line intersects at most
 // two edges.
@@ -21,7 +16,7 @@ import (
 
 func TriangulateMonotone(polygon *Polygon) []*Triangle {
 	if len(polygon.Points) < 3 {
-		panic("Cannot triangulate degenerate polygon with point count:" + strconv.Itoa(len(polygon.Points)))
+		fatalf("cannot triangulate degenerate polygon with point count: %d", len(polygon.Points))
 	}
 	if len(polygon.Points) == 3 {
 		return []*Triangle{{polygon.Points[0], polygon.Points[1], polygon.Points[2]}}
@@ -205,7 +200,7 @@ func TriangulateMonotone(polygon *Polygon) []*Triangle {
 // This is pulled out so that it's easy to add instrumentation.
 func appendTriangle(triangles []*Triangle, tri *Triangle) []*Triangle {
 	if IsCW(tri) {
-		panic("Triangle is CW:" + fmt.Sprintf("%v", tri))
+		fatalf("triangle is clockwise: %v", tri)
 	}
 
 	return append(triangles, tri)

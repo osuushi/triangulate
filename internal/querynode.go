@@ -65,7 +65,8 @@ type SinkNode struct {
 
 func (node SinkNode) FindPoint(_ DirectionalPoint) *QueryNode {
 	// If we're at a sink, we can't traverse any further.
-	panic("Should not try to find point from a sink")
+	fatalf("should not try to find point from a sink node")
+	return nil // unreachable
 }
 
 func (node SinkNode) ChildNodes() []*QueryNode {
@@ -108,7 +109,8 @@ func (node YNode) FindPoint(dp DirectionalPoint) *QueryNode {
 	case Down:
 		return node.Below.FindPoint(dp)
 	}
-	panic("no direction found") // should be unreachable
+	fatalf("no direction found") // should be unreachable
+	return nil                   // certainly unreachable
 }
 
 func (node YNode) ChildNodes() []*QueryNode {
@@ -153,7 +155,8 @@ func (node XNode) FindPoint(dp DirectionalPoint) *QueryNode {
 	case Right:
 		return node.Right.FindPoint(dp)
 	}
-	panic("no direction found") // should be unreachable
+	fatalf("no direction found") // should be unreachable
+	return nil                   // certainly unreachable
 }
 
 func (node XNode) ChildNodes() []*QueryNode {

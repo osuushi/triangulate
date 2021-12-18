@@ -27,7 +27,10 @@ in the input are:
    polygon
 
 None of the above constraints are checked. Violating them will cause undefined
-behavior, and may cause a panic, so you should recover in calling code.
+behavior, which may or may not result in an error. Most errors will be myopic,
+tending to tell you what went wrong in the internals rather than what was wrong
+with your input. So it's a good idea to validate your input before passing it
+in.
 
 In addition, note that values are internally considered to be "equal" if their
 difference is less than 10^-7.
