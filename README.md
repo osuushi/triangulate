@@ -9,10 +9,10 @@ projects. If you want to depend on it, you might want to make a fork for now.
 
 # Usage
 
-The main exported function you care about in this package is:
+The only exported function you care about in this package is:
 
 ```go
-func Triangulate(list PolygonList) TriangleList
+func Triangulate(polygons ...[]Point) []Triangle
 ```
 
 This takes in a list of arbitrary polygons, each specified by a slice of
@@ -41,26 +41,22 @@ The order in which polygons occur in `list` is completely irrelevant. You can
 list all the holes first, or polygon, hole, polygon, or whatever order is
 convenient.
 
-The types to care about here are:
+## Internals
+
+The `internal` package exports most of its types and methods. It is not
+technically part of the "public" API for this module, but it is provided for
+advanced usage. Documentation of this package is inconsistent.
+
+What you might find of particular interest in this package are:
 
 ```go
-type Point struct {
-	X float64
-	Y float64
-}
+func (g *QueryGraph) AddPolygons(list PolygonList)
 
-type Polygon struct {
-	Points []*Point
-}
-
-type PolygonList []Polygon
-
-type Triangle struct {
-	A, B, C *Point
-}
-
-type TriangleList []*Triangle
+func (g *QueryGraph) ContainsPoint(point *Point) bool
 ```
+
+These methods together allow precomputing a set of polygons to do fast hit
+testing.
 
 # Asymptotic performance
 

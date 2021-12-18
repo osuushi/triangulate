@@ -467,9 +467,9 @@ func (graph *QueryGraph) AddPolygon(poly Polygon, nondeterministic ...bool) {
 	}
 }
 
-func (g *QueryGraph) AddPolygons(lsit PolygonList) {
+func (g *QueryGraph) AddPolygons(list PolygonList) {
 	// TODO: This should be done all at once rather than one at a time
-	for _, poly := range lsit {
+	for _, poly := range list {
 		g.AddPolygon(poly)
 	}
 }
