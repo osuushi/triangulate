@@ -5,7 +5,9 @@
 // set of triangles containing only the original points.
 package triangulate
 
-import "github.com/osuushi/triangulate/internal"
+import (
+	"github.com/osuushi/triangulate/internal"
+)
 
 type Point struct {
 	X, Y float64
@@ -47,6 +49,7 @@ func Triangulate(polygons ...[]Point) (result []Triangle, err error) {
 		}
 		internalPolygons[i] = polygon
 	}
+
 	triangleList := internalPolygons.Triangulate()
 	var triangles = make([]Triangle, len(triangleList))
 	for i, triangle := range triangleList {
