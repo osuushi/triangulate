@@ -3,7 +3,6 @@
 // This package allows you to convert a set of simple polygons, which may be
 // non-convex, may be disjoint, and may contain holes, and convert them into a
 // set of triangles containing only the original points.
-
 package triangulate
 
 import "github.com/osuushi/triangulate/internal"
@@ -25,7 +24,7 @@ type Triangle struct {
 // The order of the polygons is irrelevant. See the readme for more details.
 func Triangulate(polygons ...[]Point) (result []Triangle, err error) {
 	defer func() {
-		recoveredErr := internal.RecoverFromTriangulatePanic(recover())
+		recoveredErr := internal.HandleTriangulatePanicRecover(recover())
 		if recoveredErr != nil {
 			result = nil
 			err = recoveredErr
