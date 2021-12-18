@@ -44,11 +44,15 @@ The order in which polygons occur in `list` is completely irrelevant. You can
 list all the holes first, or polygon, hole, polygon, or whatever order is
 convenient.
 
+See the [documentation](https://pkg.go.dev/github.com/osuushi/triangulate) for
+more details.
+
 ## Internals
 
-The `internal` package exports most of its types and methods. It is not
-technically part of the "public" API for this module, but it is provided for
-advanced usage. Documentation of this package is inconsistent.
+The [`internal`](https://pkg.go.dev/github.com/osuushi/triangulate/internal)
+package exports most of its types and methods. It is not technically part of the
+"public" API for this module, but it is provided for advanced usage.
+Documentation of this package is inconsistent.
 
 What you might find of particular interest in this package are:
 
