@@ -7,7 +7,7 @@ import (
 
 	"github.com/fogleman/gg"
 	imgcat "github.com/martinlindhe/imgcat/lib"
-	"github.com/osuushi/triangulate/dbg"
+	"github.com/osuushi/triangulate/internal/dbg"
 )
 
 // Padding around the shape to make infinite trapezoids obvious
