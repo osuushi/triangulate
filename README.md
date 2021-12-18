@@ -12,7 +12,7 @@ projects. If you want to depend on it, you might want to make a fork for now.
 The only exported function you care about in this package is:
 
 ```go
-func Triangulate(polygons ...[]Point) []Triangle
+func Triangulate(polygons ...[]Point) ([]Triangle, error)
 ```
 
 This takes in a list of arbitrary polygons, each specified by a slice of
