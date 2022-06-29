@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/logrusorgru/aurora"
-	"github.com/osuushi/triangulate/internal/dbg"
+	"github.com/osuushi/triangulate/advanced/dbg"
 )
 
 type Trapezoid struct {

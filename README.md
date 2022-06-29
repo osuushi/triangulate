@@ -49,7 +49,7 @@ more details.
 
 ## Internals
 
-The [`internal`](https://pkg.go.dev/github.com/osuushi/triangulate/internal)
+The [`advanced`](https://pkg.go.dev/github.com/osuushi/triangulate/advanced)
 package exports most of its types and methods. It is not technically part of the
 "public" API for this module, but it is provided for advanced usage.
 Documentation of this package is inconsistent.

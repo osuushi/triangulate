@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 // Facilities for converting a Y-monotone polygon into triangles. A Y monotone
 // polygon is a simple polygon such that any horizontal line intersects at most

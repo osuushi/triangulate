@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 import (
 	"image"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/fogleman/gg"
 	imgcat "github.com/martinlindhe/imgcat/lib"
-	"github.com/osuushi/triangulate/internal/dbg"
+	"github.com/osuushi/triangulate/advanced/dbg"
 )
 
 // Padding around the shape to make infinite trapezoids obvious

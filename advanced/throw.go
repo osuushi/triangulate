@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 import "github.com/pkg/errors"
 

@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 // This contains no actual tests. It is just a helper for testing triangulation
 // validity.

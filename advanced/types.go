@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 type Point struct {
 	X float64

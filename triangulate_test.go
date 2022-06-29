@@ -8,11 +8,11 @@ import (
 
 // Smoke test. The internals are already tested.
 func TestTriangulate(t *testing.T) {
-	points := []Point{
-		{1, -1},
-		{1, 1},
-		{-1, 1},
-		{-1, -1},
+	points := []*Point{
+		{X: 1, Y: -1},
+		{X: 1, Y: 1},
+		{X: -1, Y: 1},
+		{X: -1, Y: -1},
 	}
 
 	triangles, err := Triangulate(points)

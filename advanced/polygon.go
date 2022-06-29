@@ -1,4 +1,4 @@
-package internal
+package advanced
 
 type Polygon struct {
 	Points []*Point
